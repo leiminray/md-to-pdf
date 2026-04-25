@@ -70,3 +70,73 @@ def test_render_result_construction():
     )
     assert result.pages == 3
     assert result.bytes == 12345
+
+
+import hashlib
+from pathlib import Path
+
+from mdpdf.markdown.ast import Document, Paragraph, Text
+from mdpdf.pipeline import Pipeline
+from mdpdf.errors import TemplateError
+
+
+def test_pipeline_rejects_non_generic_template(tmp_path: Path):
+    pipeline = Pipeline.from_env()
+    req = RenderRequest(
+        source="x",
+        source_type="content",
+        output=tmp_path / "out.pdf",
+        template="quote",  # not allowed in v2.0
+    )
+    try:
+        pipeline.render(req)
+    except TemplateError as e:
+        assert e.code == "TEMPLATE_NOT_FOUND"
+    else:
+        raise AssertionError("expected TemplateError")
+
+
+def test_pipeline_renders_content_string(tmp_path: Path):
+    pipeline = Pipeline.from_env()
+    req = RenderRequest(
+        source="# Hello\n\nWalking skeleton.",
+        source_type="content",
+        output=tmp_path / "out.pdf",
+    )
+    result = pipeline.render(req)
+    assert result.output_path.exists()
+    assert result.pages == 1
+    assert result.bytes > 0
+    assert len(result.sha256) == 64
+    expected_sha = hashlib.sha256(result.output_path.read_bytes()).hexdigest()
+    assert result.sha256 == expected_sha
+
+
+def test_pipeline_renders_path_source(tmp_path: Path):
+    src = tmp_path / "in.md"
+    src.write_text("# Title\n\nBody paragraph.\n")
+    pipeline = Pipeline.from_env()
+    req = RenderRequest(
+        source=src,
+        source_type="path",
+        output=tmp_path / "out.pdf",
+    )
+    result = pipeline.render(req)
+    assert result.output_path.exists()
+    assert result.metrics.total_ms >= 0
+    assert result.metrics.parse_ms >= 0
+    assert result.metrics.render_ms >= 0
+
+
+def test_pipeline_render_id_is_uuid_in_default_mode(tmp_path: Path):
+    import uuid
+    pipeline = Pipeline.from_env()
+    req = RenderRequest(
+        source="hi",
+        source_type="content",
+        output=tmp_path / "out.pdf",
+    )
+    result = pipeline.render(req)
+    # parses without error
+    parsed = uuid.UUID(result.render_id)
+    assert str(parsed) == result.render_id
