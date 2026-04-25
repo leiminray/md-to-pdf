@@ -9,7 +9,7 @@ description = "Markdown → PDF converter with brand-pack support, watermarking,
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "Apache-2.0" }
-authors = [{ name = "sophie.leiyixiao@gmail.com" }]
+authors = [{ name = "Sophie Lei", email = "sophie.leiyixiao@gmail.com" }]
 keywords = ["markdown", "pdf", "reportlab", "cjk"]
 classifiers = [
   "Development Status :: 3 - Alpha",
@@ -54,9 +54,9 @@ target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "N", "S", "C4", "SIM"]
-ignore = ["S101"]
 
 [tool.ruff.lint.per-file-ignores]
+# Tests are allowed to use `assert` and otherwise relax security rules.
 "tests/**/*.py" = ["S"]
 
 [tool.mypy]
