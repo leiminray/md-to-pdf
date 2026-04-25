@@ -1,6 +1,5 @@
 """Tests for structlog configuration helper."""
 import json
-import logging
 
 import structlog
 

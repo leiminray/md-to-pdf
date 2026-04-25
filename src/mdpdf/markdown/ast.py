@@ -6,8 +6,6 @@ golden tests (`expected.ast.json`).
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Union
-
 
 # Forward declarations are deferred via `Node` union; see end of module.
 
@@ -26,18 +24,18 @@ class Code:
 
 @dataclass
 class Emphasis:
-    children: list["Inline"] = field(default_factory=list)
+    children: list[Inline] = field(default_factory=list)
 
 
 @dataclass
 class Strong:
-    children: list["Inline"] = field(default_factory=list)
+    children: list[Inline] = field(default_factory=list)
 
 
 @dataclass
 class Link:
     href: str
-    children: list["Inline"] = field(default_factory=list)
+    children: list[Inline] = field(default_factory=list)
 
 
 @dataclass
@@ -55,13 +53,13 @@ class Image:
 
 @dataclass
 class Paragraph:
-    children: list["Inline"] = field(default_factory=list)
+    children: list[Inline] = field(default_factory=list)
 
 
 @dataclass
 class Heading:
     level: int
-    children: list["Inline"] = field(default_factory=list)
+    children: list[Inline] = field(default_factory=list)
 
 
 @dataclass
@@ -85,7 +83,7 @@ class MermaidBlock:
 
 @dataclass
 class TableCell:
-    children: list["Inline"] = field(default_factory=list)
+    children: list[Inline] = field(default_factory=list)
 
 
 @dataclass
@@ -101,7 +99,7 @@ class Table:
 
 @dataclass
 class ListItem:
-    children: list["Block"] = field(default_factory=list)
+    children: list[Block] = field(default_factory=list)
 
 
 @dataclass
@@ -112,7 +110,7 @@ class ListBlock:
 
 @dataclass
 class BlockQuote:
-    children: list["Block"] = field(default_factory=list)
+    children: list[Block] = field(default_factory=list)
 
 
 @dataclass
@@ -129,19 +127,19 @@ class Html:
 
 @dataclass
 class Document:
-    children: list["Block"] = field(default_factory=list)
+    children: list[Block] = field(default_factory=list)
 
 
-Inline = Union[Text, Code, Emphasis, Strong, Link, Image]
-Block = Union[
-    Paragraph,
-    Heading,
-    CodeFence,
-    MermaidBlock,
-    Table,
-    ListBlock,
-    BlockQuote,
-    ThematicBreak,
-    Html,
-    Image,
-]
+Inline = Text | Code | Emphasis | Strong | Link | Image
+Block = (
+    Paragraph
+    | Heading
+    | CodeFence
+    | MermaidBlock
+    | Table
+    | ListBlock
+    | BlockQuote
+    | ThematicBreak
+    | Html
+    | Image
+)

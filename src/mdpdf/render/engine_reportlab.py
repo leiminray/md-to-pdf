@@ -7,8 +7,10 @@ sample stylesheet so the walking skeleton produces a recognisable PDF.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import cast
 from xml.sax.saxutils import escape
 
+from reportlab.lib.colors import HexColor
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
@@ -63,18 +65,24 @@ class ReportLabEngine(RenderEngine):
 
     def _convert(self, document: Document) -> list[Flowable]:
         styles = getSampleStyleSheet()
-        body_style = styles["BodyText"]
+        # ReportLab's `getSampleStyleSheet()` returns a StyleSheet1 whose
+        # `__getitem__` is typed as `PropertySet` (the common ancestor); the
+        # actual instances are `ParagraphStyle`. Narrow with cast.
+        body_style = cast(ParagraphStyle, styles["BodyText"])
         h_styles = {
             i: ParagraphStyle(
                 f"H{i}",
-                parent=styles[f"Heading{i}"] if i <= 4 else styles["Heading4"],
+                parent=cast(
+                    ParagraphStyle,
+                    styles[f"Heading{i}"] if i <= 4 else styles["Heading4"],
+                ),
             )
             for i in range(1, 7)
         }
         unsupported_style = ParagraphStyle(
             "Unsupported",
             parent=body_style,
-            textColor="#a00",
+            textColor=HexColor("#aa0000"),
             fontName="Courier",
             fontSize=9,
         )

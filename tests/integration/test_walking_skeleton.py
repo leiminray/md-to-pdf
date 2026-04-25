@@ -5,7 +5,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-import pytest
 from pypdf import PdfReader
 
 from mdpdf.pipeline import Pipeline, RenderRequest

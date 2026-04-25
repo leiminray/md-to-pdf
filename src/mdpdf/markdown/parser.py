@@ -78,7 +78,8 @@ def _convert_blocks(tokens: list[Token], start: int, end: int) -> list[Block]:
                 close = _find_close(
                     tokens, i, "ordered_list_close" if ordered else "bullet_list_close"
                 )
-                out.append(ListBlock(ordered=ordered, items=_convert_list_items(tokens, i + 1, close)))
+                items = _convert_list_items(tokens, i + 1, close)
+                out.append(ListBlock(ordered=ordered, items=items))
                 i = close + 1
             case "table_open":
                 close = _find_close(tokens, i, "table_close")

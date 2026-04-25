@@ -8,19 +8,21 @@ successful close, guaranteeing readers never see a partial PDF.
 """
 from __future__ import annotations
 
+import contextlib
 import os
 import secrets
 import shutil
 import sys
 import tempfile
+from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterator
+from typing import IO
 
 
 @contextmanager
-def atomic_write(target: Path) -> Iterator:
+def atomic_write(target: Path) -> Iterator[IO[bytes]]:
     """Open a file for binary write, finalising via atomic rename.
 
     On exception, the partial file is removed and the original (if any) is
@@ -38,17 +40,15 @@ def atomic_write(target: Path) -> Iterator:
             os.fsync(f.fileno())
         os.replace(tmp_path, target)
     except BaseException:
-        try:
+        with contextlib.suppress(FileNotFoundError):
             tmp_path.unlink()
-        except FileNotFoundError:
-            pass
         raise
 
 
 def _tmpfs_root() -> Path:
     """Prefer tmpfs (`/dev/shm` on Linux) when available; else fall back to system tmp."""
     if sys.platform == "linux":
-        shm = Path("/dev/shm")
+        shm = Path("/dev/shm")  # noqa: S108  # deliberate Linux tmpfs choice, not insecure-temp
         if shm.is_dir() and os.access(shm, os.W_OK):
             return shm
     return Path(tempfile.gettempdir())
@@ -65,7 +65,7 @@ class TempContext:
     prefix: str = "mdpdf-tmp-"
     path: Path = Path("/uninitialised")
 
-    def __enter__(self) -> "TempContext":
+    def __enter__(self) -> TempContext:
         root = _tmpfs_root()
         self.path = Path(tempfile.mkdtemp(prefix=self.prefix, dir=root))
         return self

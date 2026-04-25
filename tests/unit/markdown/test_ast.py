@@ -1,14 +1,10 @@
 """Tests for AST node dataclasses (spec §2.1.3)."""
 from mdpdf.markdown.ast import (
-    BlockQuote,
-    Code,
     CodeFence,
     Document,
-    Emphasis,
     Heading,
     Html,
     Image,
-    Link,
     ListBlock,
     ListItem,
     MermaidBlock,

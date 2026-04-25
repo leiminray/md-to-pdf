@@ -15,10 +15,9 @@ def test_atomic_write_creates_file(tmp_path: Path):
 
 def test_atomic_write_no_partial_file_on_error(tmp_path: Path):
     target = tmp_path / "out.bin"
-    with pytest.raises(RuntimeError, match="boom"):
-        with atomic_write(target) as f:
-            f.write(b"partial")
-            raise RuntimeError("boom")
+    with pytest.raises(RuntimeError, match="boom"), atomic_write(target) as f:
+        f.write(b"partial")
+        raise RuntimeError("boom")
     assert not target.exists()
     # tmp file from atomic_write should be cleaned up
     leftovers = list(tmp_path.glob("out.bin.tmp.*"))
@@ -47,8 +46,7 @@ def test_temp_context_creates_and_cleans(tmp_path: Path, monkeypatch):
 def test_temp_context_cleans_on_exception(tmp_path: Path, monkeypatch):
     monkeypatch.setenv("TMPDIR", str(tmp_path))
     saved: dict[str, Path] = {}
-    with pytest.raises(RuntimeError):
-        with TempContext(prefix="test-") as ctx:
-            saved["path"] = ctx.path
-            raise RuntimeError("failure during work")
+    with pytest.raises(RuntimeError), TempContext(prefix="test-") as ctx:
+        saved["path"] = ctx.path
+        raise RuntimeError("failure during work")
     assert not saved["path"].exists()

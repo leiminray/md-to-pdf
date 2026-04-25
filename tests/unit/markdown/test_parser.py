@@ -10,8 +10,6 @@ from mdpdf.markdown.ast import (
     Paragraph,
     Strong,
     Table,
-    Text,
-    ThematicBreak,
 )
 from mdpdf.markdown.parser import parse_markdown
 

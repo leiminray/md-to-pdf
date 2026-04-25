@@ -6,9 +6,9 @@ from mdpdf.errors import (
     FontError,
     MdpdfError,
     PipelineError,
+    RendererError,
     SecurityError,
     TemplateError,
-    RendererError,
 )
 
 

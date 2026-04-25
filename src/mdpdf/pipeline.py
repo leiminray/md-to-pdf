@@ -1,13 +1,27 @@
-"""Pipeline contracts (RenderRequest, RenderResult, RenderMetrics).
+"""Pipeline contracts and orchestrator (RenderRequest, RenderResult, Pipeline).
 
-See spec §2.1.1, §2.1.7. The Pipeline class itself is added in Task 11;
-this file ships the dataclasses first so other modules can import them.
+See spec §2.1.1, §2.1.7.
 """
 from __future__ import annotations
 
+import hashlib
+import time
+import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
+
+import structlog
+
+from mdpdf.errors import PipelineError, TemplateError
+from mdpdf.markdown.parser import parse_markdown
+from mdpdf.render.engine_base import RenderEngine
+from mdpdf.render.engine_reportlab import ReportLabEngine
+
+_log = structlog.get_logger("mdpdf.pipeline")
+
+# v2.0 allowlist; replaced by template registry in v2.1.
+_TEMPLATE_ALLOWLIST = frozenset({"generic"})
 
 
 @dataclass(frozen=True)
@@ -63,23 +77,6 @@ class RenderResult:
     metrics: RenderMetrics
 
 
-import hashlib
-import time
-import uuid
-
-import structlog
-
-from mdpdf.errors import PipelineError, TemplateError
-from mdpdf.markdown.parser import parse_markdown
-from mdpdf.render.engine_base import RenderEngine
-from mdpdf.render.engine_reportlab import ReportLabEngine
-
-_log = structlog.get_logger("mdpdf.pipeline")
-
-# v2.0 allowlist; replaced by template registry in v2.1.
-_TEMPLATE_ALLOWLIST = frozenset({"generic"})
-
-
 class Pipeline:
     """Top-level orchestrator (spec §2.1).
 
@@ -92,7 +89,7 @@ class Pipeline:
         self._engine = engine
 
     @classmethod
-    def from_env(cls) -> "Pipeline":
+    def from_env(cls) -> Pipeline:
         """Construct with default engine and config."""
         return cls(engine=ReportLabEngine())
 
@@ -124,7 +121,8 @@ class Pipeline:
         if request.source_type == "path":
             source_text = Path(request.source).read_text(encoding="utf-8")
         else:
-            assert isinstance(request.source, str)
+            # source_type == "content" implies source: str by RenderRequest contract.
+            assert isinstance(request.source, str)  # noqa: S101 — type narrow for mypy
             source_text = request.source
         document = parse_markdown(source_text)
         parse_ms = int((time.perf_counter() - t_parse_start) * 1000)

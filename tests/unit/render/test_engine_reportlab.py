@@ -58,8 +58,9 @@ def test_engine_does_not_leave_partial_file_on_error(tmp_path: Path, monkeypatch
     atomic_write fp before raising — exercises the rollback path that the
     refactor introduced (without mid-write bytes the same postconditions would
     hold trivially even without atomic_write)."""
-    from mdpdf.markdown.ast import Document, Paragraph, Text
     from reportlab.platypus import SimpleDocTemplate
+
+    from mdpdf.markdown.ast import Document, Paragraph, Text
 
     def _exploding_build(self, *args, **kwargs):  # noqa: ARG001
         # In the post-Task-12 engine, self.filename is the file-like fp from

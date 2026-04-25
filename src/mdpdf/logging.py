@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import sys
+from typing import Any
 
 import structlog
 
@@ -20,7 +21,7 @@ def configure_logging(*, json_output: bool, level: str = "INFO") -> None:
         level=getattr(logging, level.upper(), logging.INFO),
     )
 
-    processors: list = [
+    processors: list[Any] = [
         structlog.contextvars.merge_contextvars,
         structlog.processors.add_log_level,
         structlog.processors.TimeStamper(fmt="iso"),

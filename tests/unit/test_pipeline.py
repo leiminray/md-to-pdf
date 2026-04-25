@@ -1,9 +1,13 @@
-"""Tests for RenderRequest, RenderResult, RenderMetrics dataclasses (spec §2.1.1, §2.1.7)."""
+"""Tests for RenderRequest, RenderResult, RenderMetrics + Pipeline (spec §2.1)."""
+import hashlib
+import uuid
 from pathlib import Path
 
 import pytest
 
+from mdpdf.errors import TemplateError
 from mdpdf.pipeline import (
+    Pipeline,
     RenderMetrics,
     RenderRequest,
     RenderResult,
@@ -72,14 +76,6 @@ def test_render_result_construction():
     assert result.bytes == 12345
 
 
-import hashlib
-from pathlib import Path
-
-from mdpdf.markdown.ast import Document, Paragraph, Text
-from mdpdf.pipeline import Pipeline
-from mdpdf.errors import TemplateError
-
-
 def test_pipeline_rejects_non_generic_template(tmp_path: Path):
     pipeline = Pipeline.from_env()
     req = RenderRequest(
@@ -129,7 +125,6 @@ def test_pipeline_renders_path_source(tmp_path: Path):
 
 
 def test_pipeline_render_id_is_uuid_in_default_mode(tmp_path: Path):
-    import uuid
     pipeline = Pipeline.from_env()
     req = RenderRequest(
         source="hi",
