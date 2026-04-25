@@ -7,8 +7,6 @@ parse step; transformers are a separate module).
 """
 from __future__ import annotations
 
-from typing import Any
-
 from markdown_it import MarkdownIt
 from markdown_it.token import Token
 
