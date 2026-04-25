@@ -42,7 +42,9 @@ class Link:
 
 @dataclass
 class Image:
-    """Block-level image. (Inline images Plan 3.)"""
+    """Image node — appears in both `Inline` and `Block` unions per CommonMark
+    (an image-only paragraph is conventionally promoted to a block-level figure).
+    """
 
     src: str
     alt: str = ""
