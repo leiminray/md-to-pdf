@@ -1,0 +1,2 @@
+# md_to_pdf.py defaults to writing OUTPUT.pdf next to INPUT.md. Keep PDFs under out/ only.
+*.pdf

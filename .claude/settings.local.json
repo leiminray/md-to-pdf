@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep *)",
+      "Bash(/Users/leimin/Downloads/md-to-pdf/.venv/bin/python --version)"
+    ]
+  }
+}

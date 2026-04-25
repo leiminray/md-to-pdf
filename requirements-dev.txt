@@ -1,0 +1,2 @@
+# Optional: run tests under .cursor/skills/md-to-pdf/tests/
+pytest>=8,<10
