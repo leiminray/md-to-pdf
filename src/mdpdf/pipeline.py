@@ -13,7 +13,7 @@ from typing import Any, Literal
 
 import structlog
 
-from mdpdf.errors import PipelineError, TemplateError
+from mdpdf.errors import FontError, PipelineError, TemplateError
 from mdpdf.markdown.parser import parse_markdown
 from mdpdf.render.engine_base import RenderEngine
 from mdpdf.render.engine_reportlab import ReportLabEngine
@@ -22,6 +22,19 @@ _log = structlog.get_logger("mdpdf.pipeline")
 
 # v2.0 allowlist; replaced by template registry in v2.1.
 _TEMPLATE_ALLOWLIST = frozenset({"generic"})
+
+
+def _is_cjk(ch: str) -> bool:
+    """Detect CJK code points (CJK Unified, Hiragana, Katakana, Hangul)."""
+    cp = ord(ch)
+    return (
+        0x3040 <= cp <= 0x309F  # Hiragana
+        or 0x30A0 <= cp <= 0x30FF  # Katakana
+        or 0x3400 <= cp <= 0x4DBF  # CJK Extension A
+        or 0x4E00 <= cp <= 0x9FFF  # CJK Unified
+        or 0xAC00 <= cp <= 0xD7AF  # Hangul Syllables
+        or 0xF900 <= cp <= 0xFAFF  # CJK Compatibility
+    )
 
 
 @dataclass(frozen=True)
@@ -105,6 +118,28 @@ class Pipeline:
                     f"template '{request.template}' not found; "
                     "v2.0 supports only 'generic'. "
                     "See release notes for v2.1 template-pack system."
+                ),
+                render_id=render_id,
+            )
+
+        # Spec §2.1.2 step 5: fail loudly on CJK input until font manager ships
+        # in Plan 2. Byte-level CJK detector here (no font registry needed) —
+        # the proper font/manager.py with brand-pack font resolution lands in
+        # Plan 2.
+        if request.source_type == "path":
+            _preview = Path(request.source).read_bytes()[:65536].decode(
+                "utf-8", errors="ignore"
+            )
+        else:
+            assert isinstance(request.source, str)  # noqa: S101 — type narrow for mypy
+            _preview = request.source[:65536]
+        if any(_is_cjk(c) for c in _preview):
+            raise FontError(
+                code="FONT_NOT_INSTALLED",
+                user_message=(
+                    "Input contains CJK characters but v2.0a1 walking skeleton ships "
+                    "no CJK font support. Use the v1.8.9 monolith "
+                    "(`scripts/md_to_pdf.py`) for CJK input until Plan 2 lands."
                 ),
                 render_id=render_id,
             )

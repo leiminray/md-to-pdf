@@ -124,6 +124,24 @@ def test_pipeline_renders_path_source(tmp_path: Path):
     assert result.metrics.render_ms >= 0
 
 
+def test_pipeline_fails_loudly_on_cjk_input(tmp_path: Path):
+    from mdpdf.errors import FontError
+    pipeline = Pipeline.from_env()
+    req = RenderRequest(
+        source="# 你好世界",
+        source_type="content",
+        output=tmp_path / "cjk.pdf",
+    )
+    try:
+        pipeline.render(req)
+    except FontError as e:
+        assert e.code == "FONT_NOT_INSTALLED"
+        assert "CJK" in e.user_message
+        assert not (tmp_path / "cjk.pdf").exists()
+    else:
+        raise AssertionError("expected FontError on CJK input in v2.0a1")
+
+
 def test_pipeline_render_id_is_uuid_in_default_mode(tmp_path: Path):
     pipeline = Pipeline.from_env()
     req = RenderRequest(
