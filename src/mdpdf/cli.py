@@ -6,7 +6,9 @@ Other subcommands (`brand`, `fonts`, `doctor`) and flags (`--brand`,
 """
 from __future__ import annotations
 
+import getpass
 import json
+import os
 from pathlib import Path
 
 import click
@@ -151,7 +153,8 @@ def render_cmd(
         )
     if watermark_user:
         click.echo(
-            "warning: --watermark-user accepted but watermarking not yet implemented (lands in Plan 4)",
+            "warning: --watermark-user accepted but watermarking not yet "
+            "implemented (lands in Plan 4)",
             err=True,
         )
 
@@ -195,8 +198,6 @@ def version() -> None:
 
 
 def _resolve_default_user() -> str | None:
-    import getpass
-    import os
     try:
         return getpass.getuser()
     except Exception:  # noqa: BLE001

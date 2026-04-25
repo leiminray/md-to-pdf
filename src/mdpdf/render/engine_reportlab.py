@@ -72,10 +72,7 @@ class ReportLabEngine(RenderEngine):
         h_styles = {
             i: ParagraphStyle(
                 f"H{i}",
-                parent=cast(
-                    ParagraphStyle,
-                    styles[f"Heading{i}"] if i <= 4 else styles["Heading4"],
-                ),
+                parent=cast(ParagraphStyle, styles[f"Heading{i}"]),
             )
             for i in range(1, 7)
         }

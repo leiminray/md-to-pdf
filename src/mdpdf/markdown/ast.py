@@ -7,7 +7,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-# Forward declarations are deferred via `Node` union; see end of module.
+# Forward references for `Inline` and `Block` are resolved by the
+# `Inline` / `Block` Union aliases declared at the bottom of this module
+# (Python evaluates dataclass annotations as strings under
+# `from __future__ import annotations`).
 
 
 @dataclass

@@ -30,6 +30,7 @@ def test_level_filtering(capsys):
     log = structlog.get_logger("test")
     log.info("filtered_out")
     log.warning("kept")
-    captured = capsys.readouterr().err + capsys.readouterr().out
-    assert "kept" in captured
-    assert "filtered_out" not in captured
+    captured = capsys.readouterr()
+    combined = captured.err + captured.out
+    assert "kept" in combined
+    assert "filtered_out" not in combined
