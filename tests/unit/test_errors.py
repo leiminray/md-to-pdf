@@ -56,3 +56,15 @@ def test_template_not_found_for_non_generic():
 def test_str_includes_code():
     err = MdpdfError(code="X_FAILED", user_message="something failed")
     assert "X_FAILED" in str(err)
+
+
+def test_str_format_is_bracket_code_space_message():
+    """Lock the load-bearing log-line contract: `[<CODE>] <message>`."""
+    err = MdpdfError(code="X", user_message="boom")
+    assert str(err) == "[X] boom"
+
+
+def test_args_contains_only_user_message():
+    """Document the pickling contract: args[0] is the human-readable message."""
+    err = MdpdfError(code="X", user_message="boom")
+    assert err.args == ("boom",)
