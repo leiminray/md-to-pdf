@@ -1,4 +1,22 @@
-# md-to-pdf — one-time setup (self-contained skill)
+# md-to-pdf
+
+> **v2.0 walking skeleton (alpha) is now available.** Plan 1 of the [v2.0 foundation refactor](docs/superpowers/specs/2026-04-26-md-to-pdf-v2.0-foundation-design.md) ships a minimal `mdpdf` Python package with end-to-end markdown → PDF rendering via the new architecture (markdown-it-py → AST → ReportLab → atomic write). Brand packs, watermarks, Mermaid, code highlighting, and the comprehensive UAT fixture land in plans 2–5.
+>
+> **Try v2.0a1:**
+>
+> ```bash
+> python3 -m venv .venv-v2
+> .venv-v2/bin/pip install -e ".[dev]"
+> .venv-v2/bin/md-to-pdf tests/integration/fixtures/hello.md -o /tmp/hello.pdf
+> ```
+>
+> **Status:** 77 tests green (ruff + mypy --strict clean). CJK input intentionally fails loudly with `FONT_NOT_INSTALLED` until Plan 2 ships the font manager — use the legacy v1.8.9 monolith below for CJK rendering in the meantime.
+>
+> The v1.8.9 instructions below remain authoritative for the existing `scripts/md_to_pdf.py` workflow until v2.x reaches feature parity (planned for Plan 5).
+
+---
+
+# md-to-pdf v1.8.9 — one-time setup (self-contained skill)
 
 **Scripts**, **fonts** (OFL), and **venv** live under **`.cursor/skills/md-to-pdf/`**. One **ReportLab** path only — no Pandoc/TeX. Do not create a new venv per sandbox folder.
 
