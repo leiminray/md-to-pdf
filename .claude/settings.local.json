@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(grep *)",
-      "Bash(/Users/leimin/Downloads/md-to-pdf/.venv/bin/python --version)"
+      "Bash(/Users/leimin/Downloads/md-to-pdf/.venv/bin/python --version)",
+      "Bash(curl -sS https://raw.githubusercontent.com/forrestchang/andrej-karpathy-skills/main/CLAUDE.md)",
+      "Bash(git config *)",
+      "Bash(gh auth *)",
+      "Bash(git add *)"
     ]
   }
 }

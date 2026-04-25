@@ -20,6 +20,11 @@ classifiers = [
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
 ]
+
+[project.urls]
+Homepage = "https://github.com/leiminray/md-to-pdf"
+Repository = "https://github.com/leiminray/md-to-pdf"
+Issues = "https://github.com/leiminray/md-to-pdf/issues"
 dependencies = [
   "click>=8.1",
   "markdown-it-py>=3.0",
