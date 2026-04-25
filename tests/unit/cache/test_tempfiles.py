@@ -50,3 +50,12 @@ def test_temp_context_cleans_on_exception(tmp_path: Path, monkeypatch):
         saved["path"] = ctx.path
         raise RuntimeError("failure during work")
     assert not saved["path"].exists()
+
+
+def test_atomic_write_tolerates_consumer_closing_file(tmp_path: Path):
+    """Mirrors the ReportLab pattern: consumer may close fp before context exit."""
+    target = tmp_path / "consumer-closed.bin"
+    with atomic_write(target) as f:
+        f.write(b"payload")
+        f.close()
+    assert target.read_bytes() == b"payload"

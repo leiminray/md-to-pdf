@@ -26,7 +26,8 @@ def atomic_write(target: Path) -> Iterator[IO[bytes]]:
     """Open a file for binary write, finalising via atomic rename.
 
     On exception, the partial file is removed and the original (if any) is
-    untouched.
+    untouched. Robust to consumers that close the file themselves
+    (e.g., ReportLab's SimpleDocTemplate in some 4.x code paths).
     """
     target = Path(target)
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -36,8 +37,12 @@ def atomic_write(target: Path) -> Iterator[IO[bytes]]:
     try:
         with os.fdopen(fd, "wb") as f:
             yield f
-            f.flush()
-            os.fsync(f.fileno())
+            # Caller may have closed the file (ReportLab does this in some paths).
+            # Only flush/fsync if still open — closed file is fine, the bytes are
+            # already on disk via the os.fdopen context manager exit.
+            if not f.closed:
+                f.flush()
+                os.fsync(f.fileno())
         os.replace(tmp_path, target)
     except BaseException:
         with contextlib.suppress(FileNotFoundError):
