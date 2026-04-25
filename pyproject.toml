@@ -51,7 +51,10 @@ packages = ["src/mdpdf"]
 
 [tool.pytest.ini_options]
 addopts = "-ra --strict-markers"
-testpaths = ["tests"]
+# Scope pytest to the v2 test trees. Legacy v1.8.9 tests under
+# `tests/test_md_to_pdf_*.py` are preserved on disk as historical reference
+# but cannot run against v2 (they import the v1 monolith). Plan 5 removes them.
+testpaths = ["tests/unit", "tests/integration"]
 
 [tool.ruff]
 line-length = 100
