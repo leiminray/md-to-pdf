@@ -46,7 +46,7 @@ def test_render_template_other_than_generic_exits_2(tmp_path: Path):
     src = tmp_path / "in.md"
     src.write_text("# x")
     out = tmp_path / "out.pdf"
-    runner = CliRunner(mix_stderr=False)
+    runner = CliRunner()  # Click 8.3+ separates stderr by default
     result = runner.invoke(main, [str(src), "-o", str(out), "--template", "quote"])
     assert result.exit_code == 2  # configuration / argument error per spec §6.1
     assert "TEMPLATE_NOT_FOUND" in result.stderr
