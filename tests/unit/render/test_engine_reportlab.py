@@ -4,6 +4,7 @@ Plan 3 extends to tables, code, mermaid, images, lists, blockquotes.
 """
 from pathlib import Path
 
+import pytest
 from pypdf import PdfReader
 
 from mdpdf.markdown.ast import Document, Heading, Paragraph, Text
@@ -52,26 +53,27 @@ def test_unsupported_node_renders_placeholder(tmp_path: Path):
 
 
 def test_engine_does_not_leave_partial_file_on_error(tmp_path: Path, monkeypatch):
-    """If SimpleDocTemplate.build() raises, the target file must not exist."""
+    """If SimpleDocTemplate.build() crashes mid-write, target stays absent and no
+    .tmp.* leftover remains. Strengthened to actually write bytes through the
+    atomic_write fp before raising — exercises the rollback path that the
+    refactor introduced (without mid-write bytes the same postconditions would
+    hold trivially even without atomic_write)."""
     from mdpdf.markdown.ast import Document, Paragraph, Text
     from reportlab.platypus import SimpleDocTemplate
 
-    original_build = SimpleDocTemplate.build
-
     def _exploding_build(self, *args, **kwargs):  # noqa: ARG001
-        # Write a tiny stub then explode, simulating a mid-render crash.
-        raise RuntimeError("simulated render failure")
+        # In the post-Task-12 engine, self.filename is the file-like fp from
+        # atomic_write — write some bytes to simulate a partial PDF, then crash.
+        if hasattr(self.filename, "write"):
+            self.filename.write(b"%PDF-1.4 partial bytes\n")
+        raise RuntimeError("simulated mid-render failure")
 
     monkeypatch.setattr(SimpleDocTemplate, "build", _exploding_build)
 
     out = tmp_path / "should-not-exist.pdf"
     doc = Document(children=[Paragraph(children=[Text(content="x")])])
-    try:
+    with pytest.raises(RuntimeError, match="mid-render"):
         ReportLabEngine().render(doc, out)
-    except RuntimeError:
-        pass
-    else:
-        raise AssertionError("expected RuntimeError")
-    assert not out.exists()
-    leftovers = list(tmp_path.glob("should-not-exist.pdf.tmp.*"))
-    assert leftovers == []
+    assert not out.exists(), "atomic_write must roll back partial writes"
+    leftovers = list(tmp_path.glob("should-not-exist.pdf*"))
+    assert leftovers == [], f"unexpected leftovers: {leftovers}"
