@@ -7,6 +7,7 @@ sample stylesheet so the walking skeleton produces a recognisable PDF.
 from __future__ import annotations
 
 from pathlib import Path
+from xml.sax.saxutils import escape
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
@@ -99,8 +100,6 @@ class ReportLabEngine(RenderEngine):
     @staticmethod
     def _inline_to_html(children: list[Inline]) -> str:
         """Flatten inline nodes into the minimal HTML subset ReportLab Paragraph supports."""
-        from xml.sax.saxutils import escape
-
         parts: list[str] = []
         for child in children:
             match child:
