@@ -1,0 +1,72 @@
+"""Tests for RenderRequest, RenderResult, RenderMetrics dataclasses (spec §2.1.1, §2.1.7)."""
+from pathlib import Path
+
+import pytest
+
+from mdpdf.pipeline import (
+    RenderMetrics,
+    RenderRequest,
+    RenderResult,
+    WatermarkOptions,
+)
+
+
+def test_render_request_defaults():
+    req = RenderRequest(
+        source="/tmp/in.md",
+        source_type="path",
+        output=Path("/tmp/out.pdf"),
+    )
+    assert req.brand is None
+    assert req.brand_overrides == {}
+    assert req.template == "generic"
+    assert req.watermark.user is None
+    assert req.deterministic is False
+    assert req.locale == "en"
+    assert req.audit_enabled is True
+
+
+def test_render_request_is_frozen():
+    req = RenderRequest(source="x", source_type="content", output=Path("/tmp/o.pdf"))
+    with pytest.raises(AttributeError):
+        req.brand = "acme"  # type: ignore[misc]
+
+
+def test_render_request_template_only_generic_allowed_in_v20():
+    # The dataclass itself accepts any string; allowlist enforcement happens
+    # at validate-phase step 4 (Task 11). This test just confirms
+    # the field exists and defaults to "generic".
+    req = RenderRequest(source="x", source_type="content", output=Path("/o.pdf"))
+    assert req.template == "generic"
+
+
+def test_watermark_options_defaults():
+    wm = WatermarkOptions()
+    assert wm.user is None
+    assert wm.level == "L1+L2"
+    assert wm.custom_text is None
+
+
+def test_render_metrics_construction():
+    m = RenderMetrics(
+        parse_ms=10,
+        asset_resolve_ms=0,
+        render_ms=200,
+        post_process_ms=5,
+        total_ms=215,
+    )
+    assert m.total_ms == 215
+
+
+def test_render_result_construction():
+    result = RenderResult(
+        output_path=Path("/tmp/o.pdf"),
+        render_id="550e8400-e29b-41d4-a716-446655440000",
+        pages=3,
+        bytes=12345,
+        sha256="ab" * 32,
+        warnings=[],
+        metrics=RenderMetrics(0, 0, 0, 0, 0),
+    )
+    assert result.pages == 3
+    assert result.bytes == 12345
