@@ -52,6 +52,30 @@ def test_render_template_other_than_generic_exits_2(tmp_path: Path):
     assert "TEMPLATE_NOT_FOUND" in result.stderr
 
 
+def test_help_does_not_advertise_unimplemented_flags():
+    runner = CliRunner()
+    result = runner.invoke(main, ["render", "--help"])
+    assert result.exit_code == 0
+    # Hidden flags must NOT appear in --help output.
+    assert "--deterministic" not in result.output
+    assert "--watermark-user" not in result.output
+    assert "--no-audit" not in result.output
+    assert "--locale" not in result.output
+    # Visible flags MUST appear.
+    assert "--template" in result.output
+    assert "--json" in result.output
+
+
+def test_deterministic_flag_warns(tmp_path: Path):
+    src = tmp_path / "in.md"
+    src.write_text("# x")
+    out = tmp_path / "out.pdf"
+    runner = CliRunner()
+    result = runner.invoke(main, [str(src), "-o", str(out), "--deterministic"])
+    assert result.exit_code == 0
+    assert "not yet implemented" in result.stderr
+
+
 def test_render_missing_input_exits_2_via_click_validation(tmp_path: Path):
     """Click rejects the missing path with usage error (exit 2) before our
     RESOURCE_MISSING (exit 4) handler runs. Plan 5 may move path validation

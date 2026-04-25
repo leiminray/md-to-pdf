@@ -90,18 +90,32 @@ def main() -> None:
     show_default=True,
     help="Template id; v2.0 supports only 'generic'.",
 )
-@click.option("--locale", default="en", show_default=True)
-@click.option("--deterministic", is_flag=True, default=False)
+@click.option(
+    "--locale",
+    default="en",
+    show_default=True,
+    hidden=True,
+    help="(v2.0a1: no-op; locale-aware header/footer lands in Plan 2+.)",
+)
+@click.option(
+    "--deterministic",
+    is_flag=True,
+    default=False,
+    hidden=True,
+    help="(v2.0a1: no-op; deterministic mode lands in Plan 4.)",
+)
 @click.option(
     "--no-audit",
     is_flag=True,
     default=False,
-    help="Disable audit log for this render.",
+    hidden=True,
+    help="(v2.0a1: no-op; audit log lands in Plan 4.)",
 )
 @click.option(
     "--watermark-user",
     default=None,
-    help="Override watermark user (default: $USER).",
+    hidden=True,
+    help="(v2.0a1: no-op; watermarking lands in Plan 4.)",
 )
 @click.option(
     "--json",
@@ -129,6 +143,17 @@ def render_cmd(
         json_output=json_output,
         level="INFO" if json_output else "WARNING",
     )
+
+    if deterministic:
+        click.echo(
+            "warning: --deterministic accepted but not yet implemented (lands in Plan 4)",
+            err=True,
+        )
+    if watermark_user:
+        click.echo(
+            "warning: --watermark-user accepted but watermarking not yet implemented (lands in Plan 4)",
+            err=True,
+        )
 
     pipeline = Pipeline.from_env()
     req = RenderRequest(
