@@ -122,18 +122,19 @@ class Pipeline:
                 render_id=render_id,
             )
 
-        # Spec §2.1.2 step 5: fail loudly on CJK input until font manager ships
-        # in Plan 2. Byte-level CJK detector here (no font registry needed) —
-        # the proper font/manager.py with brand-pack font resolution lands in
-        # Plan 2.
+        # Read the source once (path branch needs the bytes for CJK preview
+        # AND the full string for parsing — avoid double I/O on large docs).
         if request.source_type == "path":
-            _preview = Path(request.source).read_bytes()[:65536].decode(
-                "utf-8", errors="ignore"
-            )
+            source_text = Path(request.source).read_text(encoding="utf-8")
         else:
+            # source_type == "content" implies source: str by RenderRequest contract.
             assert isinstance(request.source, str)  # noqa: S101 — type narrow for mypy
-            _preview = request.source[:65536]
-        if any(_is_cjk(c) for c in _preview):
+            source_text = request.source
+
+        # Spec §2.1.2 step 5: fail loudly on CJK input until font manager ships
+        # in Plan 2. Byte-level CJK detector (no font registry needed) — the
+        # proper font/manager.py with brand-pack font resolution lands in Plan 2.
+        if any(_is_cjk(c) for c in source_text[:65536]):
             raise FontError(
                 code="FONT_NOT_INSTALLED",
                 user_message=(
@@ -153,12 +154,6 @@ class Pipeline:
 
         # Parse phase
         t_parse_start = time.perf_counter()
-        if request.source_type == "path":
-            source_text = Path(request.source).read_text(encoding="utf-8")
-        else:
-            # source_type == "content" implies source: str by RenderRequest contract.
-            assert isinstance(request.source, str)  # noqa: S101 — type narrow for mypy
-            source_text = request.source
         document = parse_markdown(source_text)
         parse_ms = int((time.perf_counter() - t_parse_start) * 1000)
 

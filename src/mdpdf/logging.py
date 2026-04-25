@@ -1,7 +1,8 @@
 """structlog setup (spec §7.4).
 
 Two output modes:
-- Human (default) — colourised key=value lines on stderr.
+- Human (default) — key=value lines on stderr (colours disabled in v2.0a1
+  for consistent output across terminals; TTY-aware colour comes in Plan 4).
 - JSON (`--json` CLI flag) — one JSON object per line, suitable for SIEM.
 """
 from __future__ import annotations

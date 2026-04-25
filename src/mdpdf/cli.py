@@ -26,7 +26,9 @@ from mdpdf.errors import (
 from mdpdf.logging import configure_logging
 from mdpdf.pipeline import Pipeline, RenderRequest, RenderResult, WatermarkOptions
 
-# Spec §6.1 exit-code table.
+# Spec §6.1 exit-code table. Lookup walks `__mro__` so subclasses (e.g.,
+# Plan 3's MermaidError(RendererError) → exit 5) are matched correctly
+# regardless of dict insertion order.
 _EXIT_BY_CODE: dict[type[MdpdfError], int] = {
     PipelineError: 1,
     TemplateError: 2,
@@ -37,37 +39,38 @@ _EXIT_BY_CODE: dict[type[MdpdfError], int] = {
 }
 
 
+def _exit_code_for(err: MdpdfError) -> int:
+    """Map an MdpdfError to the spec §6.1 exit code via MRO walk."""
+    for cls in type(err).__mro__:
+        if cls in _EXIT_BY_CODE:
+            return _EXIT_BY_CODE[cls]
+    return 1
+
+
 class _DefaultRenderGroup(click.Group):
     """Group that routes to `render` when no subcommand is named.
 
     The bare invocation `md-to-pdf <input.md> -o <output.pdf>` (spec §6.1)
     must work alongside `md-to-pdf version`. Click's stock Group treats the
     first non-option token as a subcommand name, so we inject `render` when
-    that token does not match a registered subcommand.
+    no token matches a registered subcommand.
+
+    Detection rule: the FIRST non-dash token whose name matches a
+    registered subcommand wins. Anything else (no positional, or first
+    positional is a path) falls through to the default `render` command.
     """
 
     def parse_args(self, ctx: click.Context, args: list[str]) -> list[str]:
-        # Find the first non-option token to decide subcommand dispatch.
-        first_non_opt: str | None = None
-        skip_next = False
+        # Look for any token that exactly matches a known subcommand.
+        # Over-counting (treating a path as a token) is harmless because
+        # paths almost never match subcommand names; under-counting only
+        # falls back to the default `render` dispatch, which is correct.
         for tok in args:
-            if skip_next:
-                skip_next = False
-                continue
-            if tok.startswith("-"):
-                # Group-level options would be consumed by the parent here,
-                # but we have none; everything is on `render`. Treat any
-                # leading `-X value` as an option pair to skip past.
-                if "=" not in tok:
-                    skip_next = True
-                continue
-            first_non_opt = tok
-            break
-
-        if first_non_opt is None or first_non_opt not in self.commands:
-            # Default to `render` subcommand.
-            args = ["render", *args]
-        return super().parse_args(ctx, args)
+            if not tok.startswith("-") and tok in self.commands:
+                # Real subcommand invocation; let Click handle it normally.
+                return super().parse_args(ctx, args)
+        # No subcommand found — prepend `render` and let it consume the rest.
+        return super().parse_args(ctx, ["render", *args])
 
 
 @click.group(cls=_DefaultRenderGroup, invoke_without_command=False)
@@ -177,10 +180,7 @@ def render_cmd(
         click.echo(f"{e.code}: {e.user_message}", err=True)
         if e.technical_details:
             click.echo(f"  details: {e.technical_details}", err=True)
-        for cls, code in _EXIT_BY_CODE.items():
-            if isinstance(e, cls):
-                ctx.exit(code)
-        ctx.exit(1)
+        ctx.exit(_exit_code_for(e))
     except Exception as e:  # noqa: BLE001 — last-ditch unexpected failure
         click.echo(f"INTERNAL_ERROR: {e}", err=True)
         ctx.exit(1)

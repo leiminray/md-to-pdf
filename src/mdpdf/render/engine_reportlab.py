@@ -18,6 +18,7 @@ from reportlab.platypus import Paragraph as RLParagraph
 from reportlab.platypus import SimpleDocTemplate, Spacer
 from reportlab.platypus.flowables import Flowable
 
+from mdpdf.cache.tempfiles import atomic_write
 from mdpdf.markdown.ast import (
     Block,
     Document,
@@ -38,8 +39,6 @@ class ReportLabEngine(RenderEngine):
     name = "reportlab"
 
     def render(self, document: Document, output: Path) -> int:
-        from mdpdf.cache.tempfiles import atomic_write
-
         flowables = self._convert(document)
         if not flowables:
             flowables = [Spacer(1, 1)]

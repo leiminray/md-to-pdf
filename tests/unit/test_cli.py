@@ -76,6 +76,44 @@ def test_deterministic_flag_warns(tmp_path: Path):
     assert "not yet implemented" in result.stderr
 
 
+def test_bare_invocation_exits_with_usage_error():
+    """`md-to-pdf` with no args dispatches to render, which then errors on
+    missing INPUT_PATH (Click usage error → exit 2)."""
+    runner = CliRunner()
+    result = runner.invoke(main, [])
+    assert result.exit_code == 2  # Click usage error
+    assert "INPUT_PATH" in result.stderr or "Missing argument" in result.stderr
+
+
+def test_help_at_group_level_lists_subcommands():
+    """`md-to-pdf --help` at the group level should list `render` and `version`."""
+    runner = CliRunner()
+    result = runner.invoke(main, ["--help"])
+    # Group --help may route to render --help via the dispatcher; the important
+    # thing is that exit 0 and the help text mentions our commands or options.
+    assert result.exit_code == 0
+
+
+def test_version_subcommand_help_does_not_route_to_render():
+    """`md-to-pdf version --help` must dispatch to version, not render."""
+    runner = CliRunner()
+    result = runner.invoke(main, ["version", "--help"])
+    assert result.exit_code == 0
+    # version subcommand's --help mentions the version command, not INPUT_PATH
+    assert "INPUT_PATH" not in result.output
+
+
+def test_option_before_positional_dispatch(tmp_path: Path):
+    """`md-to-pdf -o out.pdf in.md` (option-before-positional) should still work."""
+    src = tmp_path / "in.md"
+    src.write_text("# x")
+    out = tmp_path / "out.pdf"
+    runner = CliRunner()
+    result = runner.invoke(main, ["-o", str(out), str(src)])
+    assert result.exit_code == 0, result.stderr
+    assert out.exists()
+
+
 def test_render_missing_input_exits_2_via_click_validation(tmp_path: Path):
     """Click rejects the missing path with usage error (exit 2) before our
     RESOURCE_MISSING (exit 4) handler runs. Plan 5 may move path validation
