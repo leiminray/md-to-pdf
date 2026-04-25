@@ -36,24 +36,27 @@ class ReportLabEngine(RenderEngine):
     name = "reportlab"
 
     def render(self, document: Document, output: Path) -> int:
+        from mdpdf.cache.tempfiles import atomic_write
+
         flowables = self._convert(document)
+        if not flowables:
+            flowables = [Spacer(1, 1)]
+
         page_count = [0]
 
         def _on_page(canvas, doc):  # type: ignore[no-untyped-def]
             page_count[0] += 1
 
-        if not flowables:
-            flowables = [Spacer(1, 1)]  # SimpleDocTemplate refuses empty stories
-
-        doc = SimpleDocTemplate(
-            str(output),
-            pagesize=A4,
-            leftMargin=18 * mm,
-            rightMargin=18 * mm,
-            topMargin=22 * mm,
-            bottomMargin=32 * mm,
-        )
-        doc.build(flowables, onFirstPage=_on_page, onLaterPages=_on_page)
+        with atomic_write(output) as fp:
+            doc = SimpleDocTemplate(
+                fp,
+                pagesize=A4,
+                leftMargin=18 * mm,
+                rightMargin=18 * mm,
+                topMargin=22 * mm,
+                bottomMargin=32 * mm,
+            )
+            doc.build(flowables, onFirstPage=_on_page, onLaterPages=_on_page)
         return max(page_count[0], 1)
 
     # --- AST → flowables ---
