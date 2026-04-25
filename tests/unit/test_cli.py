@@ -46,19 +46,20 @@ def test_render_template_other_than_generic_exits_2(tmp_path: Path):
     src = tmp_path / "in.md"
     src.write_text("# x")
     out = tmp_path / "out.pdf"
-    runner = CliRunner()
+    runner = CliRunner(mix_stderr=False)
     result = runner.invoke(main, [str(src), "-o", str(out), "--template", "quote"])
     assert result.exit_code == 2  # configuration / argument error per spec §6.1
-    # Error printed to stderr; CliRunner mixes stderr into result.output by default
-    # only when mix_stderr=True (the default in older Click; in 8.x it's the default).
-    combined = result.output
-    assert "TEMPLATE_NOT_FOUND" in combined
+    assert "TEMPLATE_NOT_FOUND" in result.stderr
 
 
-def test_render_missing_input_exits_2(tmp_path: Path):
+def test_render_missing_input_exits_2_via_click_validation(tmp_path: Path):
+    """Click rejects the missing path with usage error (exit 2) before our
+    RESOURCE_MISSING (exit 4) handler runs. Plan 5 may move path validation
+    inside the pipeline so this becomes exit 4 per spec §6.1 row 4.
+    """
     out = tmp_path / "out.pdf"
     runner = CliRunner()
     result = runner.invoke(main, [str(tmp_path / "missing.md"), "-o", str(out)])
-    # Click rejects the path before our code runs; exit 2 (Click default for usage errors).
-    # Using exit code 2 (argument error) is consistent with spec §6.1 row 2.
     assert result.exit_code == 2
+    # TODO(plan-5): move path-existence check into Pipeline.render's validate
+    # phase so RESOURCE_MISSING (exit 4) is returned per spec §6.1.
