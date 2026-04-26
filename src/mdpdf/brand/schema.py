@@ -131,6 +131,7 @@ class BrandPack(_Frozen):
     theme: ThemeConfig
     compliance: ComplianceConfig
     pack_root: Path
+    locales: dict[str, dict[str, Any]] = Field(default_factory=dict)
 
     @property
     def schema_major(self) -> int:
@@ -189,6 +190,16 @@ def load_brand_pack(pack_root: Path) -> BrandPack:
         "compliance": compliance_yaml,
         "pack_root": pack_root,
     }
+    locales: dict[str, dict[str, Any]] = {}
+    for locale_id, locale_rel in (brand_yaml.get("locales") or {}).items():
+        locale_path = pack_root / locale_rel.lstrip("./")
+        if not locale_path.exists():
+            raise BrandError(
+                code="BRAND_VALIDATION_FAILED",
+                user_message=f"locale file not found: {locale_path}",
+            )
+        locales[locale_id] = _load_yaml(locale_path)
+    payload["locales"] = locales
     try:
         return BrandPack(**payload)
     except ValidationError as ve:
