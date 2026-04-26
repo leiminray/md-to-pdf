@@ -15,6 +15,14 @@ import structlog
 
 from mdpdf.errors import FontError, PipelineError, TemplateError
 from mdpdf.markdown.parser import parse_markdown
+from mdpdf.markdown.transformers import run_transformers
+from mdpdf.markdown.transformers.collect_outline import collect_outline
+from mdpdf.markdown.transformers.filter_metadata_blocks import filter_metadata_blocks
+from mdpdf.markdown.transformers.normalize_merged_atx_headings import (
+    normalize_merged_atx_headings,
+)
+from mdpdf.markdown.transformers.promote_toc import promote_toc
+from mdpdf.markdown.transformers.strip_yaml_frontmatter import strip_yaml_frontmatter
 from mdpdf.render.engine_base import RenderEngine
 from mdpdf.render.engine_reportlab import ReportLabEngine
 
@@ -155,6 +163,17 @@ class Pipeline:
         # Parse phase
         t_parse_start = time.perf_counter()
         document = parse_markdown(source_text)
+        # AST transformers (spec §2.1.3)
+        document = run_transformers(
+            document,
+            [
+                strip_yaml_frontmatter,
+                normalize_merged_atx_headings,
+                filter_metadata_blocks,
+                promote_toc,
+                collect_outline,
+            ],
+        )
         parse_ms = int((time.perf_counter() - t_parse_start) * 1000)
 
         # Render phase

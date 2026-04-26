@@ -153,3 +153,31 @@ def test_pipeline_render_id_is_uuid_in_default_mode(tmp_path: Path):
     # parses without error
     parsed = uuid.UUID(result.render_id)
     assert str(parsed) == result.render_id
+
+
+def test_pipeline_runs_transformer_chain(tmp_path: Path):
+    """End-to-end: front-matter stripped, run-on heading split, TOC promoted, outline collected."""
+    src = tmp_path / "complex.md"
+    # Note: the plan's fixture uses `## 目录` to exercise promote_toc, but the
+    # Plan 1 CJK fail-loud guard (still in place until Task 15's font manager)
+    # would trigger before parse. We use `## Table of Contents` instead — same
+    # transformer code path, no CJK trip.
+    src.write_text(
+        "---\ntitle: t\n---\n"
+        "# Title\n\n"
+        "Body intro.\n\n"
+        "## Section A## Sub-A\n\n"
+        "## Table of Contents\n\n"
+        "| h | h |\n|---|---|\n| a | b |\n\n"
+        "## Section B\n\n"
+        "tail body\n"
+    )
+    pipeline = Pipeline.from_env()
+    result = pipeline.render(RenderRequest(
+        source=src,
+        source_type="path",
+        output=tmp_path / "out.pdf",
+    ))
+    assert result.output_path.exists()
+    # The render itself succeeding is the integration assertion;
+    # transformer-level assertions live in their dedicated test files.
