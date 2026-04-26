@@ -1,0 +1,16 @@
+footer:
+  text: "CONFIDENTIAL"
+  show_page_numbers: true
+  show_render_date: true
+
+issuer:
+  name: "Valid Brand Co."
+  lines:
+    - "1 Test St"
+
+watermark:
+  default_text: "Valid Brand Confidential"
+  template: "{brand_name} // {user}"
+
+disclaimer: |
+  Test disclaimer.

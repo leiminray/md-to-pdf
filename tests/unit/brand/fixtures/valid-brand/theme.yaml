@@ -1,0 +1,22 @@
+colors:
+  primary: "#0066CC"
+  text: "#1A1A1A"
+  muted: "#6B7280"
+  accent: "#10B981"
+  background: "#FFFFFF"
+
+typography:
+  body: { family: "Noto Sans SC", size: 11, leading: 16 }
+  heading: { family: "Noto Sans SC", weights: [700] }
+  code: { family: "Noto Sans Mono", size: 9, leading: 12 }
+
+layout:
+  page_size: A4
+  margins: { top: 22, right: 18, bottom: 32, left: 18 }
+  header_height: 14
+  footer_height: 18
+
+assets:
+  logo: ./assets/logo.png
+  icon: ./assets/icon.png
+  fonts_dir: ./assets/fonts
