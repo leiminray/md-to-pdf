@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from markdown_it import MarkdownIt
 from markdown_it.token import Token
+from mdit_py_plugins.front_matter import front_matter_plugin
 
 from mdpdf.markdown.ast import (
     Block,
@@ -17,6 +18,7 @@ from mdpdf.markdown.ast import (
     CodeFence,
     Document,
     Emphasis,
+    FrontMatter,
     Heading,
     Image,
     Inline,
@@ -38,7 +40,11 @@ _MERMAID_LANGS = {"mermaid", "mmd"}
 
 def parse_markdown(source: str) -> Document:
     """Parse a markdown source string into a Document AST."""
-    md = MarkdownIt("commonmark", {"html": False}).enable(["table", "strikethrough"])
+    md = (
+        MarkdownIt("commonmark", {"html": False})
+        .enable(["table", "strikethrough"])
+        .use(front_matter_plugin)
+    )
     tokens = md.parse(source)
     children = _convert_blocks(tokens, 0, len(tokens))
     return Document(children=children)
@@ -87,6 +93,18 @@ def _convert_blocks(tokens: list[Token], start: int, end: int) -> list[Block]:
                 i = close + 1
             case "hr":
                 out.append(ThematicBreak())
+                i += 1
+            case "front_matter":
+                # markdown-it front_matter token's `meta` is the raw text
+                # without the `---` fences; `markup` is the fence string.
+                # We store the inner content verbatim.
+                if tok.content:
+                    raw = tok.content
+                elif isinstance(tok.meta, str):
+                    raw = tok.meta
+                else:
+                    raw = ""
+                out.append(FrontMatter(raw=raw))
                 i += 1
             case _:
                 # Unknown / unsupported block — skip silently in Plan 1.

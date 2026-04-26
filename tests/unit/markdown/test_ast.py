@@ -85,3 +85,9 @@ def test_thematic_break_is_self_contained():
 def test_html_passthrough():
     h = Html(content="<div>raw</div>")
     assert "<div>" in h.content
+
+
+def test_front_matter_carries_raw_yaml():
+    from mdpdf.markdown.ast import FrontMatter
+    fm = FrontMatter(raw="title: Hi\nauthor: Alice\n")
+    assert "title: Hi" in fm.raw

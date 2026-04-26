@@ -113,3 +113,20 @@ def test_unknown_fence_lang_falls_back_to_codefence():
     fence = doc.children[0]
     assert isinstance(fence, CodeFence)
     assert fence.lang == ""
+
+
+def test_front_matter_block_is_parsed():
+    from mdpdf.markdown.ast import FrontMatter
+    src = "---\ntitle: My Doc\nauthor: Sophie\n---\n\n# Heading\n\nBody.\n"
+    doc = parse_markdown(src)
+    fm_nodes = [c for c in doc.children if isinstance(c, FrontMatter)]
+    assert len(fm_nodes) == 1
+    assert "title: My Doc" in fm_nodes[0].raw
+    assert "author: Sophie" in fm_nodes[0].raw
+
+
+def test_front_matter_absent_means_no_node():
+    doc = parse_markdown("# Just a heading\n")
+    from mdpdf.markdown.ast import FrontMatter
+    fm_nodes = [c for c in doc.children if isinstance(c, FrontMatter)]
+    assert fm_nodes == []

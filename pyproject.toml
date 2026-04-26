@@ -23,6 +23,7 @@ classifiers = [
 dependencies = [
   "click>=8.1",
   "markdown-it-py>=3.0",
+  "mdit-py-plugins>=0.4",
   "pydantic>=2.5",
   "reportlab>=4.0",
   "structlog>=24.1",

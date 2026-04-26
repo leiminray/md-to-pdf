@@ -129,6 +129,18 @@ class Html:
 
 
 @dataclass
+class FrontMatter:
+    """YAML front-matter at the start of a document.
+
+    Stored as raw text (not parsed). Plan 2's `strip_yaml_frontmatter`
+    transformer removes this from the document body but the brand/template
+    layers (Plan 2+) may consume the raw YAML separately.
+    """
+
+    raw: str
+
+
+@dataclass
 class Document:
     children: list[Block] = field(default_factory=list)
 
@@ -145,4 +157,5 @@ Block = (
     | ThematicBreak
     | Html
     | Image
+    | FrontMatter
 )
