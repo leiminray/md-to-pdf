@@ -123,6 +123,35 @@ def main() -> None:
     help="(v2.0a1: no-op; watermarking lands in Plan 4.)",
 )
 @click.option(
+    "--brand",
+    default=None,
+    help="Brand id; resolved via the 3-layer registry.",
+)
+@click.option(
+    "--brand-pack-dir",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    default=None,
+    help="Explicit brand pack directory.",
+)
+@click.option(
+    "--brand-config",
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    default=None,
+    help="Inline brand YAML.",
+)
+@click.option(
+    "--override",
+    "overrides",
+    multiple=True,
+    help="Brand field override 'key=value' (repeatable).",
+)
+@click.option(
+    "--legacy-brand",
+    is_flag=True,
+    default=False,
+    help="Accept v1 brand_kits/-style layout.",
+)
+@click.option(
     "--json",
     "json_output",
     is_flag=True,
@@ -139,6 +168,11 @@ def render_cmd(
     deterministic: bool,
     no_audit: bool,
     watermark_user: str | None,
+    brand: str | None,
+    brand_pack_dir: Path | None,
+    brand_config: Path | None,
+    overrides: tuple[str, ...],
+    legacy_brand: bool,
     json_output: bool,
 ) -> None:
     """Render INPUT_PATH (markdown) to a PDF."""
@@ -162,11 +196,18 @@ def render_cmd(
         )
 
     pipeline = Pipeline.from_env()
+    from mdpdf.brand.overrides import parse_override
+    parsed_overrides = [parse_override(o) for o in overrides]
     req = RenderRequest(
         source=input_path,
         source_type="path",
         output=output,
         template=template,
+        brand=brand,
+        brand_pack_dir=brand_pack_dir,
+        brand_config=brand_config,
+        brand_overrides=parsed_overrides,
+        legacy_brand=legacy_brand,
         watermark=WatermarkOptions(user=watermark_user or _resolve_default_user()),
         deterministic=deterministic,
         locale=locale,

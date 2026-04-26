@@ -22,7 +22,7 @@ def test_render_request_defaults():
         output=Path("/tmp/out.pdf"),
     )
     assert req.brand is None
-    assert req.brand_overrides == {}
+    assert req.brand_overrides == []
     assert req.template == "generic"
     assert req.watermark.user is None
     assert req.deterministic is False
@@ -124,23 +124,6 @@ def test_pipeline_renders_path_source(tmp_path: Path):
     assert result.metrics.render_ms >= 0
 
 
-def test_pipeline_fails_loudly_on_cjk_input(tmp_path: Path):
-    from mdpdf.errors import FontError
-    pipeline = Pipeline.from_env()
-    req = RenderRequest(
-        source="# 你好世界",
-        source_type="content",
-        output=tmp_path / "cjk.pdf",
-    )
-    try:
-        pipeline.render(req)
-    except FontError as e:
-        assert e.code == "FONT_NOT_INSTALLED"
-        assert "CJK" in e.user_message
-        assert not (tmp_path / "cjk.pdf").exists()
-    else:
-        raise AssertionError("expected FontError on CJK input in v2.0a1")
-
 
 def test_pipeline_render_id_is_uuid_in_default_mode(tmp_path: Path):
     pipeline = Pipeline.from_env()
@@ -158,10 +141,8 @@ def test_pipeline_render_id_is_uuid_in_default_mode(tmp_path: Path):
 def test_pipeline_runs_transformer_chain(tmp_path: Path):
     """End-to-end: front-matter stripped, run-on heading split, TOC promoted, outline collected."""
     src = tmp_path / "complex.md"
-    # Note: the plan's fixture uses `## 目录` to exercise promote_toc, but the
-    # Plan 1 CJK fail-loud guard (still in place until Task 15's font manager)
-    # would trigger before parse. We use `## Table of Contents` instead — same
-    # transformer code path, no CJK trip.
+    # Note: the plan's fixture uses `## 目录` to exercise promote_toc, but we
+    # use `## Table of Contents` here — same transformer code path.
     src.write_text(
         "---\ntitle: t\n---\n"
         "# Title\n\n"
@@ -181,3 +162,116 @@ def test_pipeline_runs_transformer_chain(tmp_path: Path):
     assert result.output_path.exists()
     # The render itself succeeding is the integration assertion;
     # transformer-level assertions live in their dedicated test files.
+
+
+def test_pipeline_resolves_brand_by_pack_dir(tmp_path: Path):
+    """Pipeline accepts --brand-pack-dir, applies BrandStyles to engine, renders."""
+    from tests.unit.brand.test_registry import _make_brand
+    pack = _make_brand(tmp_path / "brands", "alpha")
+    pipeline = Pipeline.from_env()
+    src_md = tmp_path / "in.md"
+    src_md.write_text("# Hi\n\nbody.\n")
+    result = pipeline.render(RenderRequest(
+        source=src_md,
+        source_type="path",
+        output=tmp_path / "out.pdf",
+        brand_pack_dir=pack,
+    ))
+    assert result.output_path.exists()
+
+
+def test_pipeline_cjk_succeeds_when_font_manager_finds_noto(tmp_path: Path):
+    """Plan 2 replaces Plan 1's byte detector — CJK + bundled Noto = success."""
+    src = tmp_path / "cjk.md"
+    src.write_text("# 你好\n\n世界。\n")
+    pipeline = Pipeline.from_env()
+    # No brand specified; pipeline falls back to bundled fonts
+    result = pipeline.render(RenderRequest(
+        source=src,
+        source_type="path",
+        output=tmp_path / "cjk.pdf",
+    ))
+    assert result.output_path.exists()
+    # PDF text-layer extraction may not preserve CJK in some edge cases,
+    # but the render itself succeeding (no FontError) is the contract.
+    assert result.bytes > 0
+
+
+def test_pipeline_brand_id_resolves_via_registry(tmp_path: Path, monkeypatch):
+    from tests.unit.brand.test_registry import _make_brand
+    project = tmp_path / "proj"
+    project.mkdir()
+    monkeypatch.chdir(project)
+    _make_brand(project / ".md-to-pdf" / "brands", "alpha")
+    src = project / "in.md"
+    src.write_text("# x\n\nbody\n")
+    pipeline = Pipeline.from_env()
+    result = pipeline.render(RenderRequest(
+        source=src,
+        source_type="path",
+        output=project / "out.pdf",
+        brand="alpha",
+    ))
+    assert result.output_path.exists()
+
+
+def test_pipeline_inline_brand(tmp_path: Path):
+    inline_yaml = tmp_path / "inline.yaml"
+    inline_yaml.write_text(
+        'schema_version: "2.0"\nid: ib\nname: I\nversion: "1.0"\n'
+        "theme:\n"
+        '  colors: {primary: "#000", text: "#000", muted: "#000",'
+        ' accent: "#000", background: "#fff"}\n'
+        "  typography:\n"
+        "    body: {family: Helvetica, size: 10, leading: 12}\n"
+        "    heading: {family: Helvetica, weights: [700]}\n"
+        "    code: {family: Helvetica, size: 9, leading: 12}\n"
+        "  layout:\n"
+        "    page_size: A4\n"
+        "    margins: {top: 10, right: 10, bottom: 10, left: 10}\n"
+        "    header_height: 10\n"
+        "    footer_height: 10\n"
+        "  assets: {logo: ./logo.png, icon: ./icon.png}\n"
+        "compliance:\n"
+        "  footer: {text: x, show_page_numbers: true, show_render_date: true}\n"
+        "  issuer: {name: X, lines: [a]}\n"
+        "  watermark: {default_text: x, template: x}\n"
+        "  disclaimer: x\n"
+    )
+    src = tmp_path / "in.md"
+    src.write_text("# x\n\nbody\n")
+    pipeline = Pipeline.from_env()
+    result = pipeline.render(RenderRequest(
+        source=src,
+        source_type="path",
+        output=tmp_path / "out.pdf",
+        brand_config=inline_yaml,
+    ))
+    assert result.output_path.exists()
+
+
+def test_pipeline_override_to_forbidden_field_raises(tmp_path: Path):
+    """Overrides applied at the inline-YAML payload level; forbidden field rejected."""
+    from tests.unit.brand.test_registry import _make_brand
+    pack = _make_brand(tmp_path / "brands", "withforbidden")
+    # Append forbidden_override_fields to the brand.yaml
+    bp_yaml = (pack / "brand.yaml").read_text()
+    (pack / "brand.yaml").write_text(
+        bp_yaml + "forbidden_override_fields:\n  - compliance.issuer\n"
+    )
+    src = tmp_path / "in.md"
+    src.write_text("# x\n")
+    pipeline = Pipeline.from_env()
+    from mdpdf.errors import BrandError
+    try:
+        pipeline.render(RenderRequest(
+            source=src,
+            source_type="path",
+            output=tmp_path / "out.pdf",
+            brand_pack_dir=pack,
+            brand_overrides=[("compliance.issuer.name", "Other")],
+        ))
+    except BrandError as e:
+        assert e.code == "BRAND_OVERRIDE_DENIED"
+    else:
+        raise AssertionError("expected BrandError")

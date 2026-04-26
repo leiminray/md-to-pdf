@@ -9,11 +9,18 @@ import time
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Literal
+from typing import Literal
 
 import structlog
 
-from mdpdf.errors import FontError, PipelineError, TemplateError
+from mdpdf.brand.inline import load_inline_brand
+from mdpdf.brand.legacy import load_legacy_brand_pack
+from mdpdf.brand.overrides import apply_overrides
+from mdpdf.brand.registry import BrandRegistry, resolve_brand
+from mdpdf.brand.schema import BrandPack, load_brand_pack
+from mdpdf.brand.styles import build_brand_styles
+from mdpdf.errors import PipelineError, TemplateError
+from mdpdf.fonts.manager import FontManager
 from mdpdf.markdown.parser import parse_markdown
 from mdpdf.markdown.transformers import run_transformers
 from mdpdf.markdown.transformers.collect_outline import collect_outline
@@ -30,19 +37,6 @@ _log = structlog.get_logger("mdpdf.pipeline")
 
 # v2.0 allowlist; replaced by template registry in v2.1.
 _TEMPLATE_ALLOWLIST = frozenset({"generic"})
-
-
-def _is_cjk(ch: str) -> bool:
-    """Detect CJK code points (CJK Unified, Hiragana, Katakana, Hangul)."""
-    cp = ord(ch)
-    return (
-        0x3040 <= cp <= 0x309F  # Hiragana
-        or 0x30A0 <= cp <= 0x30FF  # Katakana
-        or 0x3400 <= cp <= 0x4DBF  # CJK Extension A
-        or 0x4E00 <= cp <= 0x9FFF  # CJK Unified
-        or 0xAC00 <= cp <= 0xD7AF  # Hangul Syllables
-        or 0xF900 <= cp <= 0xFAFF  # CJK Compatibility
-    )
 
 
 @dataclass(frozen=True)
@@ -65,8 +59,11 @@ class RenderRequest:
     source: str | Path
     source_type: Literal["content", "path"]
     output: Path
-    brand: str | dict[str, Any] | None = None
-    brand_overrides: dict[str, Any] = field(default_factory=dict)
+    brand: str | None = None                       # brand id
+    brand_pack_dir: Path | None = None             # explicit --brand-pack-dir
+    brand_config: Path | None = None               # --brand-config (inline YAML)
+    brand_overrides: list[tuple[str, str]] = field(default_factory=list)
+    legacy_brand: bool = False                     # accept v1 layout
     template: str = "generic"
     watermark: WatermarkOptions = field(default_factory=WatermarkOptions)
     deterministic: bool = False
@@ -118,7 +115,7 @@ class Pipeline:
         render_id = str(uuid.uuid4())
         t0 = time.perf_counter()
 
-        # Validate phase (Plan 1: only template allowlist; other steps in plans 2-4)
+        # Validate phase: template allowlist
         if request.template not in _TEMPLATE_ALLOWLIST:
             raise TemplateError(
                 code="TEMPLATE_NOT_FOUND",
@@ -130,32 +127,43 @@ class Pipeline:
                 render_id=render_id,
             )
 
-        # Read the source once (path branch needs the bytes for CJK preview
-        # AND the full string for parsing — avoid double I/O on large docs).
+        # Validate phase: brand resolution (None / id / pack-dir / inline / legacy)
+        brand_pack = self._resolve_brand(request)
+
+        # Apply overrides if any (via inline-payload mutation + reload)
+        if request.brand_overrides and brand_pack is not None:
+            payload = brand_pack.model_dump()
+            apply_overrides(payload, request.brand_overrides)
+            brand_pack = BrandPack(**payload)
+
+        # Build styles + prepare font manager
+        styles = build_brand_styles(brand_pack) if brand_pack else None
+        bundled_fonts = Path(__file__).resolve().parents[2] / "fonts"
+        brand_fonts_dir: Path | None = None
+        if brand_pack and brand_pack.theme.assets.fonts_dir:
+            from mdpdf.brand.safe_paths import safe_join
+            try:
+                brand_fonts_dir = safe_join(
+                    brand_pack.pack_root, brand_pack.theme.assets.fonts_dir
+                )
+            except Exception:  # noqa: BLE001
+                brand_fonts_dir = None
+        fm = FontManager(bundled_dir=bundled_fonts, brand_fonts_dir=brand_fonts_dir)
+
+        # Read the source once
         if request.source_type == "path":
             source_text = Path(request.source).read_text(encoding="utf-8")
         else:
-            # source_type == "content" implies source: str by RenderRequest contract.
             assert isinstance(request.source, str)  # noqa: S101 — type narrow for mypy
             source_text = request.source
 
-        # Spec §2.1.2 step 5: fail loudly on CJK input until font manager ships
-        # in Plan 2. Byte-level CJK detector (no font registry needed) — the
-        # proper font/manager.py with brand-pack font resolution lands in Plan 2.
-        if any(_is_cjk(c) for c in source_text[:65536]):
-            raise FontError(
-                code="FONT_NOT_INSTALLED",
-                user_message=(
-                    "Input contains CJK characters but v2.0a1 walking skeleton ships "
-                    "no CJK font support. Use the v1.8.9 monolith "
-                    "(`scripts/md_to_pdf.py`) for CJK input until Plan 2 lands."
-                ),
-                render_id=render_id,
-            )
+        # Replace Plan 1 byte-level CJK guard with font-availability check
+        fm.register_for_text(source_text)
 
         _log.info(
             "render.start",
             render_id=render_id,
+            brand=brand_pack.id if brand_pack else None,
             template=request.template,
             output=str(request.output),
         )
@@ -163,7 +171,6 @@ class Pipeline:
         # Parse phase
         t_parse_start = time.perf_counter()
         document = parse_markdown(source_text)
-        # AST transformers (spec §2.1.3)
         document = run_transformers(
             document,
             [
@@ -176,14 +183,15 @@ class Pipeline:
         )
         parse_ms = int((time.perf_counter() - t_parse_start) * 1000)
 
-        # Render phase
+        # Render phase: instantiate engine with brand styles if any
+        engine = self._engine if styles is None else ReportLabEngine(brand_styles=styles)
         t_render_start = time.perf_counter()
         try:
-            pages = self._engine.render(document, request.output)
+            pages = engine.render(document, request.output)
         except Exception as exc:  # noqa: BLE001 — wrap in PipelineError
             raise PipelineError(
                 code="RENDER_FAILED",
-                user_message=f"engine '{self._engine.name}' failed during render",
+                user_message=f"engine '{engine.name}' failed during render",
                 technical_details=repr(exc),
                 render_id=render_id,
             ) from exc
@@ -203,9 +211,9 @@ class Pipeline:
             warnings=[],
             metrics=RenderMetrics(
                 parse_ms=parse_ms,
-                asset_resolve_ms=0,  # Plan 3 populates
+                asset_resolve_ms=0,
                 render_ms=render_ms,
-                post_process_ms=0,  # Plan 4 populates
+                post_process_ms=0,
                 total_ms=total_ms,
             ),
         )
@@ -220,3 +228,16 @@ class Pipeline:
         )
 
         return result
+
+    def _resolve_brand(self, request: RenderRequest) -> BrandPack | None:
+        if request.brand_config:
+            return load_inline_brand(request.brand_config)
+        if request.brand_pack_dir:
+            if request.legacy_brand:
+                bp, dep = load_legacy_brand_pack(request.brand_pack_dir)
+                _log.warning("brand.legacy_loaded", deprecation=dep)
+                return bp
+            return load_brand_pack(request.brand_pack_dir)
+        if request.brand:
+            return resolve_brand(BrandRegistry(brand_id=request.brand))
+        return None
