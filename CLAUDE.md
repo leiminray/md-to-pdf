@@ -11,31 +11,37 @@ A **Markdown → PDF** conversion engine targeted at enterprise use:
 - PDF bookmarks + table of contents
 - Designed to ship as an open-source tool consumable from CLI, Python API, Claude Code / Cursor / Gemini CLI skills, MCP servers, and GitHub Actions.
 
-The repo is currently in a **transition state**: v1.8.9 (a 3,443-line monolith) is the working tool, while v2.0 (a modular refactor) is fully designed but not yet implemented.
+The repo is currently in a **transition state**: v1.8.9 (a 3,443-line monolith) and v2.0a1 (a modular walking skeleton from Plan 1) coexist. Plan 1 is done; Plans 2–5 (AST transformers + brand v2, renderers, watermarks, comprehensive UAT) are pending.
 
 ## Repository state today (do not assume otherwise)
 
 | Layer | Status | Location |
 |---|---|---|
-| **v1.8.9 monolith** | ✅ Working — what `SKILL.md` and `README.md` describe | `scripts/md_to_pdf.py`, `scripts/brand_pack.py`, `scripts/fenced_rl.py`, `scripts/ensure_mermaid_deps.py` |
-| **v2.0 foundation** | 📋 Designed, not yet implemented | Planned at `src/mdpdf/` (does not exist yet) |
-| **v2.x roadmap** (templates, MCP, L3-L5, PDF/A, …) | 📋 Designed for later versions | Spec exists; **do not implement in this round** |
-| **Single brand pack** | ✅ Working at root `brand_kits/` | Will become a v2 brand and migrate via `md-to-pdf brand migrate` once v2.0 ships |
-| **Bundled CJK fonts** | ✅ Noto Sans SC OFL | `fonts/` (~20MB, kept in repo for v1.8.9; v2.0 makes them an opt-in extra) |
-| **Tests** | ⚠️ ~20% coverage on v1.8.9 | `tests/` (4 pytest files, mostly unit) |
+| **v1.8.9 monolith** | ✅ Working — what legacy `SKILL.md` describes | `scripts/md_to_pdf.py`, `scripts/brand_pack.py`, `scripts/fenced_rl.py`, `scripts/ensure_mermaid_deps.py` |
+| **v2.0a1 walking skeleton** | ✅ **Plan 1 complete** — `md-to-pdf` CLI installs and renders English-only markdown via markdown-it-py → AST → ReportLab | `src/mdpdf/` (pipeline, errors, cli, logging, markdown/parser+ast, render/engine_base+reportlab, cache/tempfiles) |
+| **Plan 1 patches applied** | ✅ All 11 (P1-001..P1-011) plus a follow-up review pass (I2/I3/I4/I5, m2, m5) | See git log for `P1-XXX` and `final-review fixes` commits |
+| **Plans 2–5** | 📋 Sketched in Plan 1 §Roadmap; full plans not yet authored | `docs/superpowers/plans/` will hold them when written |
+| **v2.x roadmap** (templates, MCP, L3-L5, PDF/A, dual engine) | 📋 Designed for later versions | Spec exists; **do not implement in this round** |
+| **Single brand pack** | ✅ Working at root `brand_kits/` (v1 layout) | Will migrate via `md-to-pdf brand migrate` in Plan 2 |
+| **Bundled CJK fonts** | ✅ Noto Sans SC OFL | `fonts/` (~20MB, kept for v1.8.9; v2.0 wires them via font manager in Plan 2; v2.0a1 fails loud on CJK input until then) |
+| **v1.8.9 tests** | ⚠️ ~20% coverage; **skipped under v2 pytest config** | `tests/test_md_to_pdf_*.py` preserved but excluded by `[tool.pytest.ini_options] testpaths` |
+| **v2.0 tests** | ✅ 81 tests passing (unit + integration walking-skeleton) | `tests/unit/`, `tests/integration/` |
+| **CI** | ✅ GitHub Actions workflow on Python 3.12 / Ubuntu, lint + mypy + pytest | `.github/workflows/ci.yml` (multi-OS / multi-Python matrix lands in Plan 5) |
+| **Remote** | ✅ `origin/main` → `github.com/leiminray/md-to-pdf.git` | Branch protection assumed but not yet enforced |
 | **Specs** | ✅ Authoritative for next work | `docs/superpowers/specs/` (see below) |
-| **Implementation plans** | ⏳ To be authored | `docs/superpowers/plans/` (currently empty) |
 
-## Authoritative spec documents (read before writing code)
+## Authoritative documents (read before writing code)
 
 | Doc | Purpose | When to consult |
 |---|---|---|
-| [`docs/superpowers/specs/2026-04-26-md-to-pdf-v2.0-foundation-design.md`](docs/superpowers/specs/2026-04-26-md-to-pdf-v2.0-foundation-design.md) | **v2.0 MVP scope** — what we're building right now | Always — this is the build target |
+| [`docs/superpowers/specs/2026-04-26-md-to-pdf-v2.0-foundation-design.md`](docs/superpowers/specs/2026-04-26-md-to-pdf-v2.0-foundation-design.md) | **v2.0 MVP scope** — what's being built across Plans 1–5 | Always — this is the build target |
 | [`docs/superpowers/specs/2026-04-25-md-to-pdf-v2.x-roadmap.md`](docs/superpowers/specs/2026-04-25-md-to-pdf-v2.x-roadmap.md) | Long-term vision v2.0 → v2.4 (templates, MCP, L3-L5, PDF/A, dual engine) | Only when designing forward-compatibility hooks; **do not implement** anything past v2.0 |
-| [`SKILL.md`](SKILL.md) | v1.8.9 invocation (legacy, still works) | When user asks to render a PDF *today* (use v1.8.9; v2.0 not built) |
-| [`README.md`](README.md) | v1.8.9 setup (venv, Mermaid, fonts) | Same |
+| [`docs/superpowers/plans/2026-04-26-md-to-pdf-v2.0-plan-1-walking-skeleton.md`](docs/superpowers/plans/2026-04-26-md-to-pdf-v2.0-plan-1-walking-skeleton.md) | Plan 1 — **already executed** | Reference for v2.0a1 architecture decisions; sketches Plans 2–5 |
+| [`docs/superpowers/plans/2026-04-26-plan-1-review-patch.md`](docs/superpowers/plans/2026-04-26-plan-1-review-patch.md) | Plan 1 review patches (P1-001..P1-011) — **all applied** | Reference only |
+| [`README.md`](README.md) | v2.0a1 walking-skeleton banner + v1.8.9 setup | When the user wants to install / run either version |
+| [`SKILL.md`](SKILL.md) | v1.8.9 invocation (legacy, still works in parallel) | When the user explicitly asks for v1.8.9 (CJK / Mermaid / brand-kit features beyond Plan 1) |
 
-If the two specs disagree on a feature, the **v2.0 foundation spec wins** for implementation; the roadmap is reference only.
+If the spec and roadmap disagree, the **v2.0 foundation spec wins** for implementation; the roadmap is reference only. If a Plan and the spec disagree, the **spec wins** unless the Plan was approved with an explicit deviation note.
 
 ## v2.0 scope guard rails — what NOT to build
 
@@ -59,7 +65,7 @@ What v2.0 **does** ship: ReportLab-only engine, hard-coded `generic` template, b
 
 ## Highest-risk task in v2.0 (gate everything else on this)
 
-**`markdown-it-py` parity vs the v1.8.9 regex parser.** Until every existing fixture in `fixtures/uat-*.md` (plus the new `fixtures/branch_ops_ai_robot_product_brief.md`) produces diff-zero output through the new pipeline, do not move past Step 1 of the implementation plan. See foundation spec §2.1.3 and §7.2.
+**`markdown-it-py` parity vs the v1.8.9 regex parser.** Plan 1 proved the basic markdown-it-py path works for English-only CommonMark + GFM (14 parser tests + walking-skeleton e2e green). The full parity gate — diff-zero output for every existing `fixtures/uat-*.md` plus the new `fixtures/branch_ops_ai_robot_product_brief.md` — is **Plan 5's** acceptance bar. Plan 2 (AST transformers) and Plan 3 (renderers) progressively close the gap; do not declare the gate met before Plan 5. See foundation spec §2.1.3 and §7.2.
 
 ## Architectural rules for v2.0
 
@@ -84,9 +90,33 @@ What v2.0 **does** ship: ReportLab-only engine, hard-coded `generic` template, b
 
 ## Common commands
 
-### v1.8.9 (works today)
+### v2.0a1 walking skeleton (preferred for new work; English-only)
 
-The v1.8.9 SKILL.md describes the path as `.cursor/skills/md-to-pdf/.venv/...` but in this repo the layout is at the project root:
+Console script installed via `.venv-v2/`:
+
+```bash
+# Render a markdown file (English-only in v2.0a1; CJK fails loud until Plan 2)
+.venv-v2/bin/md-to-pdf INPUT.md -o OUTPUT.pdf
+
+# Same with structured JSON output
+.venv-v2/bin/md-to-pdf INPUT.md -o OUTPUT.pdf --json
+
+# Version
+.venv-v2/bin/md-to-pdf version       # → md-to-pdf 2.0.0a1
+
+# Test, lint, type-check (same .venv-v2/)
+.venv-v2/bin/pytest -v
+.venv-v2/bin/ruff check src/ tests/
+.venv-v2/bin/mypy --strict src/mdpdf
+```
+
+Re-create the v2.0 venv if needed: `rm -rf .venv-v2 && python3 -m venv .venv-v2 && .venv-v2/bin/pip install -e ".[dev]"`.
+
+The CLI deliberately hides the not-yet-implemented flags (`--deterministic`, `--watermark-user`, `--no-audit`, `--locale`) from `--help` per P1-004; they accept input but warn on use. Don't promise these features in v2.0a1.
+
+### v1.8.9 monolith (still works in parallel; use for CJK / Mermaid / brand kits today)
+
+The legacy `SKILL.md` describes the path as `.cursor/skills/md-to-pdf/.venv/...`; in this repo the layout is at the project root:
 
 ```bash
 # Render a markdown file
@@ -98,20 +128,23 @@ MD_PDF_WATERMARK_USER="alice@example.com" .venv/bin/python scripts/md_to_pdf.py 
 # Skip Mermaid (faster; no Chromium dependency)
 MDPDF_SKIP_MERMAID=1 .venv/bin/python scripts/md_to_pdf.py INPUT.md
 
-# Run tests
-.venv/bin/pytest tests/
-
 # Bootstrap Mermaid dependencies (one-off)
 .venv/bin/python scripts/ensure_mermaid_deps.py --auto-install --puppeteer-headless-shell
 ```
 
-### v2.0 (not yet built — placeholder for when implementation lands)
+The v1.8.9 tests under `tests/test_md_to_pdf_*.py` are intentionally **excluded** by the v2 pytest config (`testpaths` scoped to `tests/unit`, `tests/integration`). Run them via `python scripts/...` directly if needed.
+
+### v2.0 commands not yet implemented (placeholder for later plans)
 
 ```bash
-# Will be:
-md-to-pdf INPUT.md -o OUTPUT.pdf --brand acme --watermark-user "$USER"
+# Plan 2:  brand resolution
 md-to-pdf brand list | brand show <id> | brand validate <path> | brand migrate <path>
-md-to-pdf doctor       # environment diagnostics
+
+# Plan 4:  watermarks + audit + determinism
+md-to-pdf INPUT.md -o OUTPUT.pdf --brand acme --watermark-user "$USER" --deterministic
+
+# Plan 5:  environment diagnostics
+md-to-pdf doctor
 ```
 
 ## Asset reference
@@ -131,12 +164,14 @@ md-to-pdf doctor       # environment diagnostics
 
 | New artifact | Path |
 |---|---|
-| Implementation plan for v2.0 | `docs/superpowers/plans/` (currently empty) |
+| Plan 2/3/4/5 implementation plans | `docs/superpowers/plans/<YYYY-MM-DD>-md-to-pdf-v2.0-plan-N-<topic>.md` (Plan 1 + its review patch already exist) |
 | Future spec revisions | `docs/superpowers/specs/<YYYY-MM-DD>-<topic>.md` |
-| New module code | `src/mdpdf/<area>/` (does not exist yet — create when implementing) |
-| Tests | `tests/unit/`, `tests/integration/`, `tests/golden/` |
-| Examples for users | `examples/brands/`, `examples/inputs/` |
-| Documentation site | `docs/` (mkdocs-material; not yet scaffolded) |
+| New module code | `src/mdpdf/<area>/` (existing: pipeline, errors, cli, logging, markdown, render, cache; later: brand, fonts, renderers, security, i18n) |
+| New tests | `tests/unit/<area>/`, `tests/integration/`, `tests/golden/` (added in Plan 5) |
+| Walking-skeleton fixture | `tests/integration/fixtures/hello.md` (already exists) |
+| Comprehensive UAT fixture | `fixtures/branch_ops_ai_robot_product_brief.md` (Plan 5 deliverable) |
+| Examples for users | `examples/brands/`, `examples/inputs/` (Plan 2 / contributed) |
+| Documentation site | `docs/` (mkdocs-material; not yet scaffolded — Plan 5) |
 
 ## When you're unsure
 
