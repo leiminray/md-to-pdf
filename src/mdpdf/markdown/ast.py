@@ -141,8 +141,18 @@ class FrontMatter:
 
 
 @dataclass
+class OutlineEntry:
+    """A heading destination for PDF bookmarks + TOC internal links."""
+
+    bookmark_id: str           # unique id, e.g. "ids-h-3"
+    level: int                 # display level (clamped to +1 jumps)
+    plain_text: str            # the visible heading text (CJK preserved)
+
+
+@dataclass
 class Document:
     children: list[Block] = field(default_factory=list)
+    outline: list[OutlineEntry] = field(default_factory=list)
 
 
 Inline = Text | Code | Emphasis | Strong | Link | Image
