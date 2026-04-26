@@ -1,23 +1,23 @@
-"""ReportLab rendering engine (Plan 1 minimal: headings + paragraphs).
+"""ReportLab rendering engine.
 
-Plan 3 extends with tables, code, mermaid, images, lists, blockquotes.
-Plan 2 wires brand-driven styles. For now the engine uses ReportLab's
-sample stylesheet so the walking skeleton produces a recognisable PDF.
+Plan 2 changes: accepts BrandStyles instead of getSampleStyleSheet().
+The Pipeline (Plan 2) constructs BrandStyles after brand resolution and
+passes it to the engine via constructor injection.
 """
 from __future__ import annotations
 
 from pathlib import Path
-from typing import cast
 from xml.sax.saxutils import escape
 
 from reportlab.lib.colors import HexColor
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib.pagesizes import A4, B5, LEGAL, LETTER
+from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
 from reportlab.platypus import Paragraph as RLParagraph
 from reportlab.platypus import SimpleDocTemplate, Spacer
 from reportlab.platypus.flowables import Flowable
 
+from mdpdf.brand.styles import BrandStyles
 from mdpdf.cache.tempfiles import atomic_write
 from mdpdf.markdown.ast import (
     Block,
@@ -32,17 +32,22 @@ from mdpdf.markdown.ast import (
 )
 from mdpdf.render.engine_base import RenderEngine
 
+_PAGE_SIZES = {"A4": A4, "Letter": LETTER, "B5": B5, "Legal": LEGAL}
+
 
 class ReportLabEngine(RenderEngine):
-    """Default engine — code-defined layout, A4, sample stylesheet."""
-
     name = "reportlab"
+
+    def __init__(self, brand_styles: BrandStyles | None = None) -> None:
+        # Allow None for back-compat with Plan 1 minimal tests, in which
+        # case we synthesise a minimal default. Pipeline always passes
+        # brand_styles in Plan 2+.
+        self._brand_styles = brand_styles or _default_styles()
 
     def render(self, document: Document, output: Path) -> int:
         flowables = self._convert(document)
         if not flowables:
             flowables = [Spacer(1, 1)]
-
         page_count = [0]
 
         def _on_page(canvas, doc):  # type: ignore[no-untyped-def]
@@ -51,62 +56,41 @@ class ReportLabEngine(RenderEngine):
         with atomic_write(output) as fp:
             doc = SimpleDocTemplate(
                 fp,
-                pagesize=A4,
-                leftMargin=18 * mm,
-                rightMargin=18 * mm,
-                topMargin=22 * mm,
-                bottomMargin=32 * mm,
+                pagesize=_PAGE_SIZES.get(self._brand_styles.page_size, A4),
+                leftMargin=self._brand_styles.left_margin * mm,
+                rightMargin=self._brand_styles.right_margin * mm,
+                topMargin=self._brand_styles.top_margin * mm,
+                bottomMargin=self._brand_styles.bottom_margin * mm,
             )
             doc.build(flowables, onFirstPage=_on_page, onLaterPages=_on_page)
         return max(page_count[0], 1)
 
-    # --- AST → flowables ---
-
     def _convert(self, document: Document) -> list[Flowable]:
-        styles = getSampleStyleSheet()
-        # ReportLab's `getSampleStyleSheet()` returns a StyleSheet1 whose
-        # `__getitem__` is typed as `PropertySet` (the common ancestor); the
-        # actual instances are `ParagraphStyle`. Narrow with cast.
-        body_style = cast(ParagraphStyle, styles["BodyText"])
-        h_styles = {
-            i: ParagraphStyle(
-                f"H{i}",
-                parent=cast(ParagraphStyle, styles[f"Heading{i}"]),
-            )
-            for i in range(1, 7)
-        }
-        unsupported_style = ParagraphStyle(
+        body = self._brand_styles.paragraph_styles["Body"]
+        out: list[Flowable] = []
+        for node in document.children:
+            out.extend(self._convert_block(node, body))
+        return out
+
+    def _convert_block(self, node: Block, body: ParagraphStyle) -> list[Flowable]:
+        if isinstance(node, Paragraph):
+            return [RLParagraph(self._inline_to_html(node.children), body)]
+        if isinstance(node, Heading):
+            level = max(1, min(node.level, 6))
+            style = self._brand_styles.paragraph_styles[f"H{level}"]
+            return [RLParagraph(self._inline_to_html(node.children), style)]
+        # Other AST node types remain Plan 3 territory.
+        unsupported = ParagraphStyle(
             "Unsupported",
-            parent=body_style,
+            parent=body,
             textColor=HexColor("#aa0000"),
             fontName="Courier",
             fontSize=9,
         )
-
-        out: list[Flowable] = []
-        for node in document.children:
-            out.extend(self._convert_block(node, body_style, h_styles, unsupported_style))
-        return out
-
-    def _convert_block(
-        self,
-        node: Block,
-        body_style: ParagraphStyle,
-        h_styles: dict[int, ParagraphStyle],
-        unsupported_style: ParagraphStyle,
-    ) -> list[Flowable]:
-        if isinstance(node, Paragraph):
-            return [RLParagraph(self._inline_to_html(node.children), body_style)]
-        if isinstance(node, Heading):
-            level = max(1, min(node.level, 6))
-            return [RLParagraph(self._inline_to_html(node.children), h_styles[level])]
-        # Plan 1 placeholder for everything else.
-        type_name = type(node).__name__
-        return [RLParagraph(f"[unsupported: {type_name}]", unsupported_style)]
+        return [RLParagraph(f"[unsupported: {type(node).__name__}]", unsupported)]
 
     @staticmethod
     def _inline_to_html(children: list[Inline]) -> str:
-        """Flatten inline nodes into the minimal HTML subset ReportLab Paragraph supports."""
         parts: list[str] = []
         for child in children:
             match child:
@@ -117,10 +101,26 @@ class ReportLabEngine(RenderEngine):
                 case Emphasis(children=cs):
                     parts.append(f"<i>{ReportLabEngine._inline_to_html(cs)}</i>")
                 case Link(href=h, children=cs):
-                    parts.append(
-                        f'<link href="{escape(h)}">{ReportLabEngine._inline_to_html(cs)}</link>'
-                    )
+                    inner = ReportLabEngine._inline_to_html(cs)
+                    parts.append(f'<link href="{escape(h)}">{inner}</link>')
                 case _:
-                    # Inline Code, Image are Plan 3.
                     parts.append(f"[{type(child).__name__}]")
         return "".join(parts)
+
+
+def _default_styles() -> BrandStyles:
+    """Minimal styles when no brand is supplied (Plan 1 walking-skeleton compat)."""
+    body = ParagraphStyle(
+        name="Body", fontName="Helvetica", fontSize=11, leading=16, wordWrap="CJK",
+    )
+    h_styles = {
+        f"H{i}": ParagraphStyle(
+            name=f"H{i}", parent=body, fontName="Helvetica-Bold",
+            fontSize=max(10, 22 - i * 2), leading=int(max(10, 22 - i * 2) * 1.4),
+        )
+        for i in range(1, 7)
+    }
+    return BrandStyles(
+        paragraph_styles={"Body": body, "Code": body, **h_styles},
+        page_size="A4", left_margin=18, right_margin=18, top_margin=22, bottom_margin=32,
+    )
