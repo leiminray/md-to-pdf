@@ -1,0 +1,15 @@
+footer:
+  text: Confidential  ·  No distribution without authorization by IDIMSUM
+  show_page_numbers: true
+  show_render_date: true
+issuer:
+  name: HEXCLOUD (Hong Kong) Technology Company Limited
+  lines:
+  - HEXCLOUD (Hong Kong) Technology Company Limited
+  - www.idimsum.com
+  - Marketing：marketing@idimsum.com · +852 5579 2115
+  - Commercial：order@idimsum.com
+watermark:
+  default_text: Confidential
+  template: '{brand_name} // {user}'
+disclaimer: Legacy brand — limited compliance metadata.

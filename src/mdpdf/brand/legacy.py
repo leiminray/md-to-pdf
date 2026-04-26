@@ -80,9 +80,25 @@ def load_legacy_brand_pack(pack_root: Path) -> tuple[BrandPack, str]:
     return bp, deprecation
 
 
+# Map v1 font face aliases to the names actually registered by FontManager.
+_V1_FONT_ALIASES: dict[str, str] = {
+    "IDS-Noto-Regular": "NotoSansSC-Regular",
+    "IDS-Noto-Bold": "NotoSansSC-Bold",
+    "Noto Sans SC": "NotoSansSC-Regular",
+    "Noto Sans Mono": "Courier",
+}
+
+
+def _normalise_v1_font(name: str) -> str:
+    return _V1_FONT_ALIASES.get(name, name)
+
+
 def _v1_theme_to_v2(v1: dict[str, Any]) -> dict[str, Any]:
     """Map v1 theme.yaml schema to v2 schema (best effort)."""
     v1_colors: dict[str, Any] = v1.get("colors", {})
+    body_family = _normalise_v1_font(
+        v1.get("fonts", {}).get("footer_face", "NotoSansSC-Regular")
+    )
     return {
         "colors": {
             "primary": v1_colors.get("brand", "#0f4c81"),
@@ -92,11 +108,9 @@ def _v1_theme_to_v2(v1: dict[str, Any]) -> dict[str, Any]:
             "background": "#FFFFFF",
         },
         "typography": {
-            "body": {"family": v1.get("fonts", {}).get("footer_face", "Noto Sans SC"),
-                     "size": 11, "leading": 16},
-            "heading": {"family": v1.get("fonts", {}).get("footer_face", "Noto Sans SC"),
-                        "weights": [700]},
-            "code": {"family": "Noto Sans Mono", "size": 9, "leading": 12},
+            "body": {"family": body_family, "size": 11, "leading": 16},
+            "heading": {"family": body_family, "weights": [700]},
+            "code": {"family": "Courier", "size": 9, "leading": 12},
         },
         "layout": {
             "page_size": "A4",
