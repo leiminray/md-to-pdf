@@ -197,6 +197,101 @@ def version() -> None:
     click.echo(f"md-to-pdf {__version__}")
 
 
+@main.group()
+def brand() -> None:
+    """Brand pack management."""
+
+
+@brand.command(name="list")
+def brand_list() -> None:
+    """List all available brands across the registry layers."""
+    from mdpdf.brand.registry import BrandRegistry
+
+    reg = BrandRegistry()
+    brands = reg.list_brands()
+    if not brands:
+        click.echo("(no brands found)")
+        return
+    for b in brands:
+        click.echo(f"{b.id}\t{b.name}\t{b.version}\t{b.pack_root}")
+
+
+@brand.command(name="show")
+@click.option(
+    "--brand-pack-dir",
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+    required=True,
+)
+def brand_show(brand_pack_dir: Path) -> None:
+    """Print the resolved brand config (YAML)."""
+    import yaml
+
+    from mdpdf.brand.schema import load_brand_pack
+
+    try:
+        bp = load_brand_pack(brand_pack_dir)
+    except MdpdfError as e:
+        click.echo(f"{e.code}: {e.user_message}", err=True)
+        raise SystemExit(_exit_code_for(e)) from e
+    click.echo(
+        yaml.safe_dump(bp.model_dump(exclude={"pack_root"}), sort_keys=False, allow_unicode=True)
+    )
+
+
+@brand.command(name="validate")
+@click.argument("brand_path", type=click.Path(exists=True, file_okay=False, path_type=Path))
+@click.option(
+    "--legacy-brand",
+    is_flag=True,
+    default=False,
+    help="Accept v1 brand_kits/-style layout.",
+)
+def brand_validate(brand_path: Path, legacy_brand: bool) -> None:
+    """Validate a brand pack against the v2 schema."""
+    from mdpdf.brand.legacy import load_legacy_brand_pack
+    from mdpdf.brand.schema import load_brand_pack
+
+    try:
+        if legacy_brand:
+            bp, deprecation = load_legacy_brand_pack(brand_path)
+            click.echo(deprecation, err=True)
+        else:
+            bp = load_brand_pack(brand_path)
+    except MdpdfError as e:
+        click.echo(f"{e.code}: {e.user_message}", err=True)
+        raise SystemExit(_exit_code_for(e)) from e
+    click.echo(f"valid: brand '{bp.id}' v{bp.version} (schema {bp.schema_version})")
+
+
+@brand.command(name="migrate")
+@click.argument("v1_path", type=click.Path(exists=True, file_okay=False, path_type=Path))
+@click.argument("v2_output", type=click.Path(file_okay=False, path_type=Path))
+@click.option(
+    "--id",
+    "target_id",
+    default=None,
+    help="Override the v2 brand id (defaults to v1 dir name).",
+)
+@click.option(
+    "--force",
+    is_flag=True,
+    default=False,
+    help="Overwrite a non-empty target dir.",
+)
+def brand_migrate(
+    v1_path: Path, v2_output: Path, target_id: str | None, force: bool
+) -> None:
+    """Convert a v1 brand_kits/-style layout into a v2 brand pack."""
+    from mdpdf.brand.migrate import migrate_v1_to_v2
+
+    try:
+        out = migrate_v1_to_v2(v1_path, v2_output, target_id=target_id, force=force)
+    except MdpdfError as e:
+        click.echo(f"{e.code}: {e.user_message}", err=True)
+        raise SystemExit(_exit_code_for(e)) from e
+    click.echo(str(out))
+
+
 def _resolve_default_user() -> str | None:
     try:
         return getpass.getuser()

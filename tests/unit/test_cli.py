@@ -125,3 +125,132 @@ def test_render_missing_input_exits_2_via_click_validation(tmp_path: Path):
     assert result.exit_code == 2
     # TODO(plan-5): move path-existence check into Pipeline.render's validate
     # phase so RESOURCE_MISSING (exit 4) is returned per spec §6.1.
+
+
+def test_brand_list_subcommand_runs(tmp_path: Path, monkeypatch: object) -> None:
+    """`md-to-pdf brand list` exits 0 (may list 0 or N brands)."""
+    runner = CliRunner()
+    result = runner.invoke(main, ["brand", "list"])
+    assert result.exit_code == 0
+
+
+def test_brand_validate_v2_pack(tmp_path: Path) -> None:
+    pack = tmp_path / "vbrand"
+    pack.mkdir()
+    (pack / "brand.yaml").write_text(
+        'schema_version: "2.0"\nid: vbrand\nname: V\nversion: "1.0"\n'
+        'theme: ./theme.yaml\ncompliance: ./compliance.yaml\n'
+    )
+    (pack / "theme.yaml").write_text(
+        'colors: {primary: "#000", text: "#000", muted: "#000",'
+        ' accent: "#000", background: "#fff"}\n'
+        'typography: {body: {family: F, size: 10, leading: 12},'
+        ' heading: {family: F, weights: [700]},'
+        ' code: {family: F, size: 9, leading: 12}}\n'
+        'layout: {page_size: A4,'
+        ' margins: {top: 10, right: 10, bottom: 10, left: 10},'
+        ' header_height: 10, footer_height: 10}\n'
+        'assets: {logo: ./logo.png, icon: ./icon.png}\n'
+    )
+    (pack / "compliance.yaml").write_text(
+        'footer: {text: x, show_page_numbers: true, show_render_date: true}\n'
+        'issuer: {name: X, lines: [a]}\n'
+        'watermark: {default_text: x, template: x}\n'
+        'disclaimer: x\n'
+    )
+    (pack / "LICENSE").write_text("test")
+    runner = CliRunner()
+    result = runner.invoke(main, ["brand", "validate", str(pack)])
+    assert result.exit_code == 0
+    assert "valid" in result.output.lower()
+
+
+def test_brand_validate_invalid_pack_exits_3(tmp_path: Path) -> None:
+    bad = tmp_path / "bad"
+    bad.mkdir()
+    runner = CliRunner()
+    result = runner.invoke(main, ["brand", "validate", str(bad)])
+    assert result.exit_code == 3
+    assert "BRAND_NOT_FOUND" in result.output
+
+
+def test_brand_validate_legacy_with_flag(tmp_path: Path) -> None:
+    bk = tmp_path / "v1bk"
+    bk.mkdir()
+    (bk / "theme.yaml").write_text(
+        'colors:\n  brand: "#0f4c81"\n  body: "#1f2937"\n  muted: "#6b7280"\n'
+        '  table_header_bg: "#f3f4f6"\n  table_grid: "#d1d5db"\n  table_fin_negative: "#dc2626"\n'
+        '  issuer_title: "#374151"\n  issuer_body: "#6b7280"\n'
+        '  issuer_card_bg: "#f8fafc"\n  issuer_card_border: "#dbe3ea"\n'
+        'typography:\n  footer_confidential_pt: 7\n  footer_page_num_pt: 8\n'
+        'fonts:\n  footer_face: F\n  header_generated_face: F\n'
+        'assets:\n  logo: "logo.png"\n  icon: "icon.png"\n'
+        'layout:\n  logo_header_height_pt: 34\n  logo_header_width_scale: 4.0\n'
+    )
+    (bk / "compliance.md").write_text(
+        '## brand profiles\n- Acme\n## Footer confidential\n'
+        'Confidential\n## Issuer lines\n- **Acme**\n'
+    )
+    (bk / "logo.png").write_bytes(b"\x89PNG\r\n\x1a\n")
+    (bk / "icon.png").write_bytes(b"\x89PNG\r\n\x1a\n")
+    runner = CliRunner()
+    result = runner.invoke(main, ["brand", "validate", str(bk), "--legacy-brand"])
+    assert result.exit_code == 0
+    assert "deprecated" in result.stderr.lower() or "legacy" in result.stderr.lower()
+
+
+def test_brand_migrate_subcommand(tmp_path: Path) -> None:
+    bk = tmp_path / "v1bk"
+    bk.mkdir()
+    (bk / "theme.yaml").write_text(
+        'colors:\n  brand: "#0f4c81"\n  body: "#1f2937"\n  muted: "#6b7280"\n'
+        '  table_header_bg: "#f3f4f6"\n  table_grid: "#d1d5db"\n  table_fin_negative: "#dc2626"\n'
+        '  issuer_title: "#374151"\n  issuer_body: "#6b7280"\n'
+        '  issuer_card_bg: "#f8fafc"\n  issuer_card_border: "#dbe3ea"\n'
+        'typography:\n  footer_confidential_pt: 7\n  footer_page_num_pt: 8\n'
+        'fonts:\n  footer_face: F\n  header_generated_face: F\n'
+        'assets:\n  logo: "logo.png"\n  icon: "icon.png"\n'
+        'layout:\n  logo_header_height_pt: 34\n  logo_header_width_scale: 4.0\n'
+    )
+    (bk / "compliance.md").write_text(
+        '## brand profiles\n- Acme\n## Footer confidential\n'
+        'Confidential\n## Issuer lines\n- **Acme**\n'
+    )
+    (bk / "logo.png").write_bytes(b"\x89PNG\r\n\x1a\n")
+    (bk / "icon.png").write_bytes(b"\x89PNG\r\n\x1a\n")
+    out = tmp_path / "v2"
+    runner = CliRunner()
+    result = runner.invoke(main, ["brand", "migrate", str(bk), str(out), "--id", "acme"])
+    assert result.exit_code == 0
+    assert (out / "brand.yaml").exists()
+
+
+def test_brand_show_subcommand(tmp_path: Path) -> None:
+    pack = tmp_path / "show1"
+    pack.mkdir()
+    (pack / "brand.yaml").write_text(
+        'schema_version: "2.0"\nid: show1\nname: Show1\nversion: "1.0"\n'
+        'theme: ./theme.yaml\ncompliance: ./compliance.yaml\n'
+    )
+    (pack / "theme.yaml").write_text(
+        'colors: {primary: "#000", text: "#000", muted: "#000",'
+        ' accent: "#000", background: "#fff"}\n'
+        'typography: {body: {family: F, size: 10, leading: 12},'
+        ' heading: {family: F, weights: [700]},'
+        ' code: {family: F, size: 9, leading: 12}}\n'
+        'layout: {page_size: A4,'
+        ' margins: {top: 10, right: 10, bottom: 10, left: 10},'
+        ' header_height: 10, footer_height: 10}\n'
+        'assets: {logo: ./logo.png, icon: ./icon.png}\n'
+    )
+    (pack / "compliance.yaml").write_text(
+        'footer: {text: x, show_page_numbers: true, show_render_date: true}\n'
+        'issuer: {name: X, lines: [a]}\n'
+        'watermark: {default_text: x, template: x}\n'
+        'disclaimer: x\n'
+    )
+    (pack / "LICENSE").write_text("test")
+    runner = CliRunner()
+    result = runner.invoke(main, ["brand", "show", "--brand-pack-dir", str(pack)])
+    assert result.exit_code == 0
+    assert "show1" in result.output
