@@ -35,3 +35,6 @@ mdpdf-tmp-*/
 
 # Plan 1+ build artifacts
 src/*.egg-info/
+
+# Git worktrees (parallel agent isolation)
+.worktrees/
