@@ -50,6 +50,7 @@ dev = [
   "types-pyyaml",
   "types-reportlab",
 ]
+mermaid-pure = ["mermaid>=0.7"]
 
 [project.scripts]
 md-to-pdf = "mdpdf.cli:main"
