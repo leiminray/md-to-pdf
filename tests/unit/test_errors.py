@@ -68,3 +68,17 @@ def test_args_contains_only_user_message():
     """Document the pickling contract: args[0] is the human-readable message."""
     err = MdpdfError(code="X", user_message="boom")
     assert err.args == ("boom",)
+
+
+def test_renderer_error_codes_documented():
+    """The new Plan 3 RendererError codes are documented in the docstring."""
+    from mdpdf.errors import RendererError
+    docstring = RendererError.__doc__ or ""
+    for code in [
+        "MERMAID_TIMEOUT",
+        "MERMAID_INVALID_SYNTAX",
+        "MERMAID_RESOURCE_LIMIT",
+        "MERMAID_RENDERER_UNAVAILABLE",
+        "RENDERER_NON_DETERMINISTIC",
+    ]:
+        assert code in docstring, f"missing {code} in RendererError docstring"

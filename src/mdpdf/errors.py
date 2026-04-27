@@ -46,7 +46,15 @@ class FontError(MdpdfError):
 
 
 class RendererError(MdpdfError):
-    """Base for content-renderer errors (Mermaid, image, code)."""
+    """Renderer (Mermaid, image, code) errors.
+
+    Codes:
+    - MERMAID_TIMEOUT — kroki / mmdc / pure took longer than 30s
+    - MERMAID_INVALID_SYNTAX — sandbox rejected the source (XSS pattern)
+    - MERMAID_RESOURCE_LIMIT — source too large, too many nodes, too deep, or output > 10MB
+    - MERMAID_RENDERER_UNAVAILABLE — neither kroki, mmdc, nor mermaid-py is reachable
+    - RENDERER_NON_DETERMINISTIC — pure-Python mermaid renderer used in --deterministic mode
+    """
 
 
 class SecurityError(MdpdfError):
