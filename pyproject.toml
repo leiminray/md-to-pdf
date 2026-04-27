@@ -27,8 +27,10 @@ dependencies = [
   "markdown-it-py>=3.0",
   "mdit-py-plugins>=0.4",
   "Pillow>=10.0",
+  "pikepdf>=8.0",
   "pydantic>=2.5",
   "pygments>=2.17",
+  "pypdf>=4.0",
   "pyyaml>=6.0",
   "reportlab>=4.0",
   "structlog>=24.1",
@@ -93,3 +95,9 @@ select = ["E", "F", "I", "B", "UP", "N", "S", "C4", "SIM"]
 strict = true
 python_version = "3.10"
 files = ["src/mdpdf"]
+
+# pikepdf does not ship stubs; cairosvg / mermaid lack stubs too. Silence
+# import-not-found from mypy without weakening strict mode elsewhere.
+[[tool.mypy.overrides]]
+module = ["pikepdf", "pikepdf.*", "cairosvg", "mermaid"]
+ignore_missing_imports = true
