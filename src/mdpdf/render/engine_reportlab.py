@@ -22,6 +22,7 @@ from mdpdf.brand.styles import BrandStyles
 from mdpdf.cache.tempfiles import atomic_write
 from mdpdf.markdown.ast import (
     Block,
+    BlockQuote,
     CodeFence,
     Document,
     Emphasis,
@@ -35,7 +36,7 @@ from mdpdf.markdown.ast import (
 )
 from mdpdf.markdown.ast import Image as ASTImage
 from mdpdf.render.engine_base import RenderEngine
-from mdpdf.render.flowables import FencedCodeCard, MermaidImage
+from mdpdf.render.flowables import CalloutBox, FencedCodeCard, MermaidImage
 from mdpdf.renderers.base import RenderContext
 from mdpdf.renderers.code_pygments import CodeRenderer
 from mdpdf.renderers.image import ImageRenderer
@@ -129,6 +130,15 @@ class ReportLabEngine(RenderEngine):
                 str(img_result.path),
                 width=img_result.width_px * scale,
                 height=img_result.height_px * scale,
+            )]
+        if isinstance(node, BlockQuote):
+            inner_flowables: list[Flowable] = []
+            for child in node.children:
+                inner_flowables.extend(self._convert_block(child, body))
+            accent = self._brand_styles.paragraph_styles["H1"].textColor
+            return [CalloutBox(
+                body=inner_flowables,
+                accent_color=str(accent.hexval()) if hasattr(accent, "hexval") else "#0066CC",
             )]
         # Other AST node types remain Plan 3 territory until subsequent tasks land.
         unsupported = ParagraphStyle(

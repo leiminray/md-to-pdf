@@ -166,3 +166,50 @@ class MermaidImage(Flowable):
         assert self._table is not None  # noqa: S101 — type narrow for mypy
         self._table.canv = self.canv
         self._table.drawOn(self.canv, 0, 0)
+
+
+@dataclass
+class CalloutBox(Flowable):
+    """Bordered card for blockquotes (spec §2.1.5).
+
+    Optional left-edge accent bar in brand colour. Body is a list of
+    Flowables (paragraphs, lists, etc.) that get wrapped in a Table.
+    """
+
+    body: list[Flowable]
+    accent_color: str = "#0066CC"
+    background_color: str = "#f6f8fa"
+    border_color: str = "#dbe3ea"
+
+    def __post_init__(self) -> None:
+        Flowable.__init__(self)
+        self._table: Table | None = None
+        self._build()
+
+    def _build(self) -> None:
+        rows: list[list[Flowable | str]] = [["", body_item] for body_item in self.body]
+        if not rows:
+            rows = [["", Spacer(1, 1)]]
+        self._table = Table(
+            rows,
+            colWidths=[3 * mm, None],
+        )
+        self._table.setStyle(TableStyle([
+            ("LINEBEFORE", (0, 0), (0, -1), 2, HexColor(self.accent_color)),
+            ("BACKGROUND", (1, 0), (-1, -1), HexColor(self.background_color)),
+            ("BOX", (1, 0), (-1, -1), 0.5, HexColor(self.border_color)),
+            ("LEFTPADDING", (1, 0), (-1, -1), 6),
+            ("RIGHTPADDING", (1, 0), (-1, -1), 6),
+            ("TOPPADDING", (1, 0), (-1, -1), 4),
+            ("BOTTOMPADDING", (1, 0), (-1, -1), 4),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ]))
+
+    def wrap(self, aw: float, ah: float) -> tuple[float, float]:
+        assert self._table is not None  # noqa: S101 — type narrow for mypy
+        return self._table.wrap(aw, ah)
+
+    def draw(self) -> None:
+        assert self._table is not None  # noqa: S101 — type narrow for mypy
+        self._table.canv = self.canv
+        self._table.drawOn(self.canv, 0, 0)
