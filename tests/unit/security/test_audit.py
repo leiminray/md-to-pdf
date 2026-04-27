@@ -134,3 +134,48 @@ def test_write_failure_raises_pipeline_error(tmp_path: Path) -> None:
     with pytest.raises(PipelineError) as exc_info:
         log.log_error(render_id="r", duration_ms=1, code="X", message="y")
     assert exc_info.value.code == "AUDIT_LOG_WRITE_FAILED"
+
+
+# ── Task 18: env-var override + permission re-tighten ────────────────────────
+
+
+def test_env_var_overrides_default_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """MD_PDF_AUDIT_PATH is honoured when no explicit path is passed."""
+    custom = tmp_path / "custom.jsonl"
+    monkeypatch.setenv("MD_PDF_AUDIT_PATH", str(custom))
+    log = AuditLogger()
+    assert log._path == custom
+    log.log_error(render_id="r", duration_ms=1, code="X", message="y")
+    assert custom.exists()
+
+
+def test_default_path_falls_back_to_home_when_env_var_absent(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Without MD_PDF_AUDIT_PATH, the default lives under HOME — patch HOME
+    so the test does not pollute the developer's actual ~/.md-to-pdf/.
+
+    Pass-1 P4-010: prevents the previous test from creating
+    ~/.md-to-pdf/audit.jsonl on every CI runner.
+    """
+    monkeypatch.delenv("MD_PDF_AUDIT_PATH", raising=False)
+    monkeypatch.setenv("HOME", str(tmp_path))
+    log = AuditLogger()
+    assert log._path == tmp_path / ".md-to-pdf" / "audit.jsonl"
+    # Constructor is lazy — file should not exist yet.
+    assert not log._path.exists()
+
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX-only permissions test")
+def test_widened_permissions_re_tightened_on_next_write(tmp_path: Path) -> None:
+    """If a third party widens the audit file to 0o644, the next event
+    re-applies 0o640.
+    """
+    log = AuditLogger(path=tmp_path / "audit.jsonl")
+    log.log_error(render_id="r", duration_ms=1, code="A", message="a")
+    os.chmod(tmp_path / "audit.jsonl", 0o644)
+    log.log_error(render_id="r", duration_ms=1, code="B", message="b")
+    mode = stat.S_IMODE((tmp_path / "audit.jsonl").stat().st_mode)
+    assert mode == 0o640

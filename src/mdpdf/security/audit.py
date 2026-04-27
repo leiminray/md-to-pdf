@@ -14,25 +14,44 @@ import contextlib
 import json
 import os
 import stat
+import sys
+import warnings
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from mdpdf.errors import PipelineError
 
-_DEFAULT_PATH = Path.home() / ".md-to-pdf" / "audit.jsonl"
 _DEFAULT_RETAIN_DAYS = 90
 
 
+def _resolve_default_path() -> Path:
+    """Resolve audit path: MD_PDF_AUDIT_PATH env var if set, else
+    ``~/.md-to-pdf/audit.jsonl``.
+    """
+    env_path = os.environ.get("MD_PDF_AUDIT_PATH")
+    if env_path:
+        return Path(env_path)
+    return Path.home() / ".md-to-pdf" / "audit.jsonl"
+
+
 class AuditLogger:
-    """Appends structured JSONL audit events to a log file."""
+    """Appends structured JSONL audit events to a log file.
+
+    Creates the file lazily on first event so an idle AuditLogger does not
+    pollute the filesystem. POSIX file mode is enforced to 0o640 after each
+    write (touch + chmod, since Path.touch(mode=0o640) is masked by umask).
+    Windows ACL hardening is deferred to v2.3 — emits a one-shot warning.
+    """
+
+    _WIN32_WARNED: bool = False
 
     def __init__(
         self,
-        path: Path = _DEFAULT_PATH,
+        path: Path | None = None,
         retain_days: int = _DEFAULT_RETAIN_DAYS,
     ) -> None:
-        self._path = path
+        self._path = path if path is not None else _resolve_default_path()
         self._retain_days = retain_days
 
     def log_start(
@@ -147,16 +166,33 @@ class AuditLogger:
             line = json.dumps(event, ensure_ascii=False, separators=(",", ":")) + "\n"
             with open(self._path, "a", encoding="utf-8") as f:
                 f.write(line)
-            with contextlib.suppress(OSError):
-                current_mode = stat.S_IMODE(self._path.stat().st_mode)
-                if current_mode != 0o640:
-                    os.chmod(self._path, 0o640)
+            self._enforce_permissions()
         except OSError as exc:
             raise PipelineError(
                 code="AUDIT_LOG_WRITE_FAILED",
                 user_message=f"Cannot write to audit log at {self._path}: {exc}",
                 technical_details=str(exc),
             ) from exc
+
+    def _enforce_permissions(self) -> None:
+        """Re-tighten the audit file mode to 0o640 (POSIX) or warn on Windows.
+
+        Pass-2 patch P4-017: Windows ACL hardening is deferred to v2.3; emit
+        a one-shot warning instead of importing pywin32.
+        """
+        if sys.platform.startswith("win"):
+            if not AuditLogger._WIN32_WARNED:
+                warnings.warn(
+                    "audit log file permissions are POSIX-only in v2.0; "
+                    "Windows ACL hardening lands in v2.3",
+                    stacklevel=3,
+                )
+                AuditLogger._WIN32_WARNED = True
+            return
+        with contextlib.suppress(OSError):
+            current_mode = stat.S_IMODE(self._path.stat().st_mode)
+            if current_mode != 0o640:
+                os.chmod(self._path, 0o640)
 
 
 def _now_iso() -> str:
