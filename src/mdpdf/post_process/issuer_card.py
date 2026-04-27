@@ -89,34 +89,33 @@ def apply_issuer_card(
 ) -> None:
     """Overlay the issuer card on the last page of *pdf_path* (in-place, atomically)."""
     reader = pypdf.PdfReader(str(pdf_path))
-    writer = pypdf.PdfWriter()
-    total = len(reader.pages)
+    # Preserve outlines / named destinations from the source PDF.
+    writer = pypdf.PdfWriter(clone_from=reader)
+    total = len(writer.pages)
 
     card_bg = _hex_to_color(card_bg_hex)
     card_border = _hex_to_color(card_border_hex)
     title_color = _hex_to_color(title_color_hex)
     body_color = _hex_to_color(body_color_hex)
 
-    for i, page in enumerate(reader.pages):
-        if i == total - 1:
-            media = page.mediabox
-            pw = float(media.width)
-            ph = float(media.height)
-            overlay_bytes = _build_card_overlay(
-                pw, ph,
-                issuer_name=issuer_name,
-                issuer_lines=issuer_lines,
-                card_bg=card_bg,
-                card_border=card_border,
-                title_color=title_color,
-                body_color=body_color,
-                title_pt=title_pt,
-                body_pt=body_pt,
-                position=position,
-            )
-            overlay_reader = pypdf.PdfReader(io.BytesIO(overlay_bytes))
-            page.merge_page(overlay_reader.pages[0])
-        writer.add_page(page)
+    last = writer.pages[total - 1]
+    media = last.mediabox
+    pw = float(media.width)
+    ph = float(media.height)
+    overlay_bytes = _build_card_overlay(
+        pw, ph,
+        issuer_name=issuer_name,
+        issuer_lines=issuer_lines,
+        card_bg=card_bg,
+        card_border=card_border,
+        title_color=title_color,
+        body_color=body_color,
+        title_pt=title_pt,
+        body_pt=body_pt,
+        position=position,
+    )
+    overlay_reader = pypdf.PdfReader(io.BytesIO(overlay_bytes))
+    last.merge_page(overlay_reader.pages[0])
 
     dir_path = pdf_path.parent
     fd, tmp_path_str = tempfile.mkstemp(

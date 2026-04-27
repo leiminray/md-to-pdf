@@ -113,9 +113,11 @@ def apply_l1_watermark(
     )
 
     reader = pypdf.PdfReader(str(pdf_path))
-    writer = pypdf.PdfWriter()
+    # Preserve outlines via clone_from; merge the watermark on top of the
+    # cloned pages instead of building a fresh writer that loses metadata.
+    writer = pypdf.PdfWriter(clone_from=reader)
 
-    for page in reader.pages:
+    for page in writer.pages:
         media_box = page.mediabox
         width_pt = float(media_box.width)
         height_pt = float(media_box.height)
@@ -131,9 +133,7 @@ def apply_l1_watermark(
         )
 
         wm_reader = pypdf.PdfReader(io.BytesIO(wm_bytes))
-        wm_page = wm_reader.pages[0]
-        wm_page.merge_page(page)
-        writer.add_page(wm_page)
+        page.merge_page(wm_reader.pages[0])
 
     dir_path = pdf_path.parent
     fd, tmp_path_str = tempfile.mkstemp(

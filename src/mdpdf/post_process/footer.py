@@ -90,10 +90,13 @@ def apply_footer(
                 break
 
     reader = pypdf.PdfReader(str(pdf_path))
-    writer = pypdf.PdfWriter()
-    total = len(reader.pages)
+    # clone_from preserves outlines, named destinations, and metadata that
+    # plain `add_page` would drop (Plan 3's PDF outline must survive
+    # post-process).
+    writer = pypdf.PdfWriter(clone_from=reader)
+    total = len(writer.pages)
 
-    for i, page in enumerate(reader.pages):
+    for i, page in enumerate(writer.pages):
         media = page.mediabox
         pw = float(media.width)
         ph = float(media.height)
@@ -112,9 +115,7 @@ def apply_footer(
             color=fill,
         )
         overlay_reader = pypdf.PdfReader(io.BytesIO(overlay_bytes))
-        overlay_page = overlay_reader.pages[0]
-        page.merge_page(overlay_page)
-        writer.add_page(page)
+        page.merge_page(overlay_reader.pages[0])
 
     # Atomic write: tempfile + fsync + rename in same dir (P4-012).
     dir_path = pdf_path.parent
