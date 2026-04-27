@@ -55,6 +55,7 @@ class FencedCodeCard(Flowable):
             alignment=2,  # right-aligned
         )
 
+        # Build per-line HTML once.
         body_lines: list[str] = []
         for line_frags in self.result.lines:
             html_parts: list[str] = []
@@ -63,7 +64,6 @@ class FencedCodeCard(Flowable):
                     f'<font color="{frag.color}">{escape(frag.text) or " "}</font>'
                 )
             body_lines.append("".join(html_parts) or " ")
-        body_paragraph = RLParagraph("<br/>".join(body_lines), body_style)
 
         rows: list[list[Flowable | str]] = []
         if self.result.lang:
@@ -74,12 +74,19 @@ class FencedCodeCard(Flowable):
             rows.append(["", badge])
             rows.append(["", Spacer(1, 2)])
 
-        if self.line_numbers:
-            line_number_html = "<br/>".join(str(i + 1) for i, _ in enumerate(self.result.lines))
-            gutter = RLParagraph(line_number_html, gutter_style)
-            rows.append([gutter, body_paragraph])
-        else:
-            rows.append(["", body_paragraph])
+        # Chunk the body into N-line groups so the wrapping Table has multiple
+        # rows it can split between, instead of one giant Paragraph that
+        # ReportLab can't break across pages. Tables only split between rows.
+        chunk_size = 30
+        for start in range(0, len(body_lines), chunk_size):
+            chunk_html = "<br/>".join(body_lines[start : start + chunk_size])
+            chunk_paragraph = RLParagraph(chunk_html, body_style)
+            if self.line_numbers:
+                end = min(start + chunk_size, len(body_lines))
+                gutter_html = "<br/>".join(str(i + 1) for i in range(start, end))
+                rows.append([RLParagraph(gutter_html, gutter_style), chunk_paragraph])
+            else:
+                rows.append(["", chunk_paragraph])
 
         col_widths: list[float] = (
             [9 * mm, None]  # type: ignore[list-item]
