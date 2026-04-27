@@ -13,6 +13,7 @@ from reportlab.lib.colors import HexColor
 from reportlab.lib.pagesizes import A4, B5, LEGAL, LETTER
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
+from reportlab.platypus import Image as RLImage
 from reportlab.platypus import Paragraph as RLParagraph
 from reportlab.platypus import SimpleDocTemplate, Spacer
 from reportlab.platypus.flowables import Flowable
@@ -31,10 +32,12 @@ from mdpdf.markdown.ast import (
     Strong,
     Text,
 )
+from mdpdf.markdown.ast import Image as ASTImage
 from mdpdf.render.engine_base import RenderEngine
 from mdpdf.render.flowables import FencedCodeCard
 from mdpdf.renderers.base import RenderContext
 from mdpdf.renderers.code_pygments import CodeRenderer
+from mdpdf.renderers.image import ImageRenderer
 
 _PAGE_SIZES = {"A4": A4, "Letter": LETTER, "B5": B5, "Legal": LEGAL}
 
@@ -99,6 +102,21 @@ class ReportLabEngine(RenderEngine):
                 body_font=code_style.fontName,
                 body_font_size=int(code_style.fontSize),
                 line_numbers=False,
+            )]
+        if isinstance(node, ASTImage):
+            img_ctx = RenderContext(
+                cache_root=Path.home() / ".md-to-pdf" / "cache",
+                brand_pack=None,
+                allow_remote_assets=False,
+                deterministic=False,
+            )
+            img_result = ImageRenderer().render(node, img_ctx)
+            max_width_mm = 170  # leave margin; 1px = 1pt at 72dpi
+            scale = min(1.0, (max_width_mm * mm) / img_result.width_px)
+            return [RLImage(
+                str(img_result.path),
+                width=img_result.width_px * scale,
+                height=img_result.height_px * scale,
             )]
         # Other AST node types remain Plan 3 territory until subsequent tasks land.
         unsupported = ParagraphStyle(

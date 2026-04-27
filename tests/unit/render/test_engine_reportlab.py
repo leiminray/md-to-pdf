@@ -94,3 +94,18 @@ def test_engine_renders_code_fence_no_placeholder(tmp_path: Path):
     text = "".join(p.extract_text() for p in PdfReader(str(out)).pages)
     assert "def f" in text
     assert "[unsupported" not in text
+
+
+def test_engine_renders_block_image(tmp_path: Path):
+    from PIL import Image as PILImage
+
+    from mdpdf.markdown.ast import Document
+    from mdpdf.markdown.ast import Image as ASTImage
+    src = tmp_path / "block.png"
+    PILImage.new("RGB", (200, 100), (255, 0, 0)).save(src, "PNG")
+    doc = Document(children=[ASTImage(src=str(src), alt="block image")])
+    engine = ReportLabEngine()
+    out = tmp_path / "img.pdf"
+    engine.render(doc, out)
+    # PDF exists and has size > 1KB (image data embedded).
+    assert out.stat().st_size > 1024
