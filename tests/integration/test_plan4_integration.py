@@ -74,17 +74,16 @@ def _run_md_to_pdf(
 
 
 class TestDeterministicRender:
-    def test_deterministic_render_id_is_stable_across_runs(
+    def test_deterministic_render_is_bit_identical(
         self, tmp_path: Path, isolated_audit: Path
     ) -> None:
-        """Same inputs + SOURCE_DATE_EPOCH → same XMP RenderId across 3 runs.
+        """Same inputs + SOURCE_DATE_EPOCH → identical sha256 across 3 runs.
 
-        The render-id is the canonical fingerprint per spec §2.3. Bit-identical
-        sha256 also requires overriding ReportLab's random PDF /ID and
-        pikepdf's xmpMM:* random IDs — this is a known gap (see
-        TestDeterministicRender.test_pdf_bytes_identical_xfail below).
+        Closes the spec §2.3 + CLAUDE.md determinism contract. Requires
+        pikepdf.Pdf.save(deterministic_id=True) on every PDF write that
+        happens after the engine pass (apply_l2_xmp + freeze_pdf_dates).
         """
-        ids: list[str] = []
+        shas: list[str] = []
         for i in range(3):
             out = tmp_path / f"out_{i}.pdf"
             proc = _run_md_to_pdf(
@@ -95,39 +94,14 @@ class TestDeterministicRender:
                 env_extra={"SOURCE_DATE_EPOCH": _SOURCE_DATE_EPOCH},
             )
             assert proc.returncode == 0, proc.stderr
-            with pikepdf.open(str(out)) as pdf, pdf.open_metadata() as meta:
-                ids.append(str(meta["{https://md-to-pdf.dev/xmp/1.0/}RenderId"]))
-        assert len(set(ids)) == 1, f"RenderId diverged: {ids}"
-
-    @pytest.mark.xfail(
-        reason=(
-            "Bit-identical PDF requires overriding ReportLab's random PDF /ID "
-            "in the trailer and pikepdf's xmpMM:DocumentID — gap to close in a "
-            "follow-up patch (CLAUDE.md determinism contract)."
-        ),
-        strict=False,
-    )
-    def test_pdf_bytes_identical_xfail(
-        self, tmp_path: Path, isolated_audit: Path
-    ) -> None:
-        """Tracks the spec contract that --deterministic produces bit-identical PDFs."""
-        out1 = tmp_path / "a.pdf"
-        out2 = tmp_path / "b.pdf"
-        for out in (out1, out2):
-            proc = _run_md_to_pdf(
-                str(DETERMINISTIC), "-o", str(out),
-                "--deterministic",
-                "--watermark-user", "alice@test.example",
-                env_extra={"SOURCE_DATE_EPOCH": _SOURCE_DATE_EPOCH},
-            )
-            assert proc.returncode == 0, proc.stderr
-        assert _sha256(out1) == _sha256(out2)
+            shas.append(_sha256(out))
+        assert len(set(shas)) == 1, f"sha256 diverged: {shas}"
 
     def test_deterministic_user_changes_pdf(
         self, tmp_path: Path, isolated_audit: Path
     ) -> None:
-        """Different --watermark-user values produce different XMP RenderId."""
-        ids: list[str] = []
+        """Different --watermark-user values produce different sha256 outputs."""
+        shas: list[str] = []
         for user in ("alice@test.example", "bob@test.example"):
             out = tmp_path / f"{user.split('@')[0]}.pdf"
             proc = _run_md_to_pdf(
@@ -138,9 +112,8 @@ class TestDeterministicRender:
                 env_extra={"SOURCE_DATE_EPOCH": _SOURCE_DATE_EPOCH},
             )
             assert proc.returncode == 0, proc.stderr
-            with pikepdf.open(str(out)) as pdf, pdf.open_metadata() as meta:
-                ids.append(str(meta["{https://md-to-pdf.dev/xmp/1.0/}RenderId"]))
-        assert ids[0] != ids[1]
+            shas.append(_sha256(out))
+        assert shas[0] != shas[1]
 
 
 # ── Task 20: full flow — watermark + XMP + audit ─────────────────────────────

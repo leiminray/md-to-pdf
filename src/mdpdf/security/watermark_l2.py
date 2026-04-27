@@ -41,7 +41,10 @@ def apply_l2_xmp(
         with pikepdf.open(str(pdf_path)) as pdf:
             with pdf.open_metadata(set_pikepdf_as_editor=False) as meta:
                 meta.register_xml_namespace(_MDPDF_NS, "mdpdf")
-                meta["dc:creator"] = dc_creator
+                # XMP standard requires dc:creator to be a Bag/Seq of strings,
+                # not a single literal — pass a single-element list to silence
+                # pikepdf's deprecation warning and stay spec-compliant.
+                meta["dc:creator"] = [dc_creator]
                 meta["dc:title"] = dc_title
                 meta["pdf:Producer"] = _PRODUCER
                 meta["xmp:CreatorTool"] = _CREATOR_TOOL
@@ -54,7 +57,11 @@ def apply_l2_xmp(
                 meta["mdpdf:InputHash"] = input_hash
                 meta["mdpdf:WatermarkLevel"] = watermark_level
 
-            pdf.save(tmp_path_str)
+            # deterministic_id derives the trailer /ID from sha256(file bytes)
+            # instead of generating a random instance ID, so two saves of the
+            # same content produce identical trailers (closes the bit-identical
+            # determinism gap).
+            pdf.save(tmp_path_str, deterministic_id=True)
 
         os.replace(tmp_path_str, pdf_path)
     except Exception:

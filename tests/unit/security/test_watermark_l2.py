@@ -41,7 +41,8 @@ def test_apply_l2_xmp_all_keys_present(tmp_path: Path) -> None:
     apply_l2_xmp(pdf_path, **_SAMPLE_KWARGS)
 
     with pikepdf.open(str(pdf_path)) as pdf, pdf.open_metadata() as meta:
-        assert meta["dc:creator"] == "ACME Corp"
+        # dc:creator is an XMP Bag/Seq per spec; pikepdf returns a list-like.
+        assert list(meta["dc:creator"]) == ["ACME Corp"]
         assert meta["dc:title"] == "Test Document"
         assert meta["pdf:Producer"] == "md-to-pdf 2.0"
         assert meta["xmp:CreatorTool"] == "md-to-pdf 2.0"

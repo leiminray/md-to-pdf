@@ -116,7 +116,7 @@ def freeze_pdf_dates(pdf_path: Path, epoch: int) -> None:
                 pass
             pdf.docinfo["/CreationDate"] = pikepdf.String(pdf_date)
             pdf.docinfo["/ModDate"] = pikepdf.String(pdf_date)
-            pdf.save(tmp_path_str)
+            pdf.save(tmp_path_str, deterministic_id=True)
 
         os.replace(tmp_path_str, pdf_path)
     except Exception:
