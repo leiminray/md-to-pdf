@@ -15,27 +15,36 @@ from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
 from reportlab.platypus import Image as RLImage
 from reportlab.platypus import Paragraph as RLParagraph
-from reportlab.platypus import SimpleDocTemplate, Spacer
+from reportlab.platypus import SimpleDocTemplate, Spacer, TableStyle
+from reportlab.platypus import Table as RLTable
 from reportlab.platypus.flowables import Flowable
 
 from mdpdf.brand.styles import BrandStyles
 from mdpdf.cache.tempfiles import atomic_write
 from mdpdf.markdown.ast import (
     Block,
+    BlockQuote,
     CodeFence,
     Document,
     Emphasis,
     Heading,
     Inline,
     Link,
+    ListBlock,
     MermaidBlock,
+    OutlineEntry,
     Paragraph,
     Strong,
     Text,
 )
 from mdpdf.markdown.ast import Image as ASTImage
+from mdpdf.markdown.ast import Table as ASTTable
+from mdpdf.markdown.transformers.collect_outline import _inline_to_plain
 from mdpdf.render.engine_base import RenderEngine
-from mdpdf.render.flowables import FencedCodeCard, MermaidImage
+from mdpdf.render.flowables import CalloutBox, FencedCodeCard, MermaidImage
+from mdpdf.render.lists import ast_list_to_flowable
+from mdpdf.render.outline import HeadingBookmark
+from mdpdf.render.tables import compute_column_widths
 from mdpdf.renderers.base import RenderContext
 from mdpdf.renderers.code_pygments import CodeRenderer
 from mdpdf.renderers.image import ImageRenderer
@@ -77,12 +86,31 @@ class ReportLabEngine(RenderEngine):
     def _convert(self, document: Document) -> list[Flowable]:
         body = self._brand_styles.paragraph_styles["Body"]
         out: list[Flowable] = []
+        consumed: set[str] = set()
+
+        def _next_entry_for(plain: str) -> OutlineEntry | None:
+            for entry in document.outline:
+                if entry.plain_text == plain and entry.bookmark_id not in consumed:
+                    consumed.add(entry.bookmark_id)
+                    return entry
+            return None
+
         for node in document.children:
-            out.extend(self._convert_block(node, body))
+            flowables = self._convert_block(node, body)
+            if isinstance(node, Heading) and flowables:
+                plain = _inline_to_plain(node.children)
+                entry = _next_entry_for(plain)
+                if entry is not None:
+                    flowables[0] = HeadingBookmark(inner=flowables[0], entry=entry)
+            out.extend(flowables)
         return out
 
     def _convert_block(self, node: Block, body: ParagraphStyle) -> list[Flowable]:
         if isinstance(node, Paragraph):
+            # CommonMark wraps a standalone `![alt](src)` in a Paragraph; promote
+            # such image-only paragraphs to block-level Image flowables.
+            if len(node.children) == 1 and isinstance(node.children[0], ASTImage):
+                return self._convert_block(node.children[0], body)
             return [RLParagraph(self._inline_to_html(node.children), body)]
         if isinstance(node, Heading):
             level = max(1, min(node.level, 6))
@@ -129,6 +157,40 @@ class ReportLabEngine(RenderEngine):
                 str(img_result.path),
                 width=img_result.width_px * scale,
                 height=img_result.height_px * scale,
+            )]
+        if isinstance(node, ASTTable):
+            cells_text: list[list[str]] = []
+            header_text = [self._inline_to_html(c.children) for c in node.header.cells]
+            cells_text.append(list(header_text))
+            for row in node.rows:
+                cells_text.append([self._inline_to_html(c.children) for c in row.cells])
+            # P3-006: Use the actual page width for the current brand (default A4 = 210mm).
+            _page_w_pt = _PAGE_SIZES.get(self._brand_styles.page_size, A4)[0]
+            _margins_pt = (self._brand_styles.left_margin + self._brand_styles.right_margin) * mm
+            available_pt = _page_w_pt - _margins_pt
+            widths = compute_column_widths(cells_text, available_width_pt=available_pt)
+            rl_data = [[RLParagraph(t, body) for t in row] for row in cells_text]
+            tbl = RLTable(rl_data, colWidths=widths)
+            tbl.setStyle(TableStyle([
+                ("BACKGROUND", (0, 0), (-1, 0), HexColor("#f3f4f6")),
+                ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#d1d5db")),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 4),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+                ("TOPPADDING", (0, 0), (-1, -1), 3),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+            ]))
+            return [tbl]
+        if isinstance(node, ListBlock):
+            return [ast_list_to_flowable(node, body)]
+        if isinstance(node, BlockQuote):
+            inner_flowables: list[Flowable] = []
+            for child in node.children:
+                inner_flowables.extend(self._convert_block(child, body))
+            accent = self._brand_styles.paragraph_styles["H1"].textColor
+            return [CalloutBox(
+                body=inner_flowables,
+                accent_color=str(accent.hexval()) if hasattr(accent, "hexval") else "#0066CC",
             )]
         # Other AST node types remain Plan 3 territory until subsequent tasks land.
         unsupported = ParagraphStyle(

@@ -17,7 +17,7 @@ import httpx
 from PIL import Image as PILImage
 
 from mdpdf.cache.tempfiles import atomic_write
-from mdpdf.errors import SecurityError
+from mdpdf.errors import RendererError, SecurityError
 from mdpdf.markdown.ast import Image as ASTImage
 from mdpdf.renderers.base import RenderContext, Renderer
 
@@ -82,7 +82,20 @@ class ImageRenderer(Renderer[ASTImage, ImageRenderResult]):
 
         ctx.cache_root.mkdir(parents=True, exist_ok=True)
         out = ctx.cache_root / f"{p.stem}.svg.png"
-        png_bytes = cairosvg.svg2png(url=str(p))
+        try:
+            png_bytes = cairosvg.svg2png(url=str(p))
+        except OSError as e:
+            # cairosvg loads libcairo via ctypes; missing native library raises
+            # OSError. Wrap as a structured renderer error so the CLI maps it
+            # to the right exit code instead of the generic INTERNAL_ERROR path.
+            raise RendererError(
+                code="IMAGE_RENDERER_UNAVAILABLE",
+                user_message=(
+                    f"failed to rasterise SVG '{p.name}': libcairo unavailable. "
+                    "Install via `brew install cairo` (macOS) or `apt-get install libcairo2`."
+                ),
+                technical_details=str(e),
+            ) from e
         with atomic_write(out) as fp:
             fp.write(png_bytes)
         with PILImage.open(out) as img:

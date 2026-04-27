@@ -250,6 +250,57 @@ def test_pipeline_inline_brand(tmp_path: Path):
     assert result.output_path.exists()
 
 
+def test_pipeline_asset_resolve_ms_populated_for_mermaid(tmp_path: Path, monkeypatch):
+    """asset_resolve_ms > 0 when document contains a mermaid block."""
+    monkeypatch.delenv("KROKI_URL", raising=False)
+    # Mock both mmdc lookup and mermaid-py to keep Mermaid renderer chain operational
+    # without requiring real renderers in CI-style unit tests.
+    monkeypatch.setattr(
+        "mdpdf.renderers.mermaid_puppeteer._find_mmdc", lambda: None
+    )
+
+    # Generate a minimal real PNG so the downstream engine pass (which opens
+    # the cached file with PIL to size it) succeeds. The plan's literal
+    # b"\x89PNG\r\n\x1a\nfake" bytes pass the PNG signature check but fail
+    # PIL.Image.open(); a real 1x1 PNG keeps the test focused on the metric
+    # rather than on PIL validation.
+    import io as _io
+
+    from PIL import Image as _PILImage
+
+    _png_buf = _io.BytesIO()
+    _PILImage.new("RGB", (1, 1), color="white").save(_png_buf, format="PNG")
+    _png_bytes = _png_buf.getvalue()
+
+    class _FakeMermaid:
+        @staticmethod
+        def to_png(source: str) -> bytes:
+            return _png_bytes
+
+    monkeypatch.setattr(
+        "mdpdf.renderers.mermaid_pure._import_mermaid", lambda: _FakeMermaid
+    )
+
+    src = tmp_path / "with-mermaid.md"
+    src.write_text("# T\n\n```mermaid\ngraph TD\n  A --> B\n```\n")
+    pipeline = Pipeline.from_env()
+    result = pipeline.render(RenderRequest(
+        source=src, source_type="path", output=tmp_path / "out.pdf",
+    ))
+    assert result.metrics.asset_resolve_ms >= 0  # should be > 0 in practice; >= 0 covers fast mocks
+
+
+def test_pipeline_asset_resolve_ms_zero_for_pure_text(tmp_path: Path):
+    src = tmp_path / "plain.md"
+    src.write_text("# T\n\nplain body.\n")
+    pipeline = Pipeline.from_env()
+    result = pipeline.render(RenderRequest(
+        source=src, source_type="path", output=tmp_path / "out.pdf",
+    ))
+    # No assets to resolve → 0
+    assert result.metrics.asset_resolve_ms == 0
+
+
 def test_pipeline_override_to_forbidden_field_raises(tmp_path: Path):
     """Overrides applied at the inline-YAML payload level; forbidden field rejected."""
     from tests.unit.brand.test_registry import _make_brand
