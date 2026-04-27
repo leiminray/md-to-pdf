@@ -161,7 +161,10 @@ def test_default_path_falls_back_to_home_when_env_var_absent(
     ~/.md-to-pdf/audit.jsonl on every CI runner.
     """
     monkeypatch.delenv("MD_PDF_AUDIT_PATH", raising=False)
-    monkeypatch.setenv("HOME", str(tmp_path))
+    # Patch Path.home directly so this works cross-platform: Path.home reads
+    # $HOME on POSIX but $USERPROFILE on Windows, so the env-var-only patch
+    # below would silently no-op on Windows runners.
+    monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
     log = AuditLogger()
     assert log._path == tmp_path / ".md-to-pdf" / "audit.jsonl"
     # Constructor is lazy — file should not exist yet.
