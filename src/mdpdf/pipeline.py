@@ -19,8 +19,10 @@ from mdpdf.brand.overrides import apply_overrides
 from mdpdf.brand.registry import BrandRegistry, resolve_brand
 from mdpdf.brand.schema import BrandPack, load_brand_pack
 from mdpdf.brand.styles import build_brand_styles
-from mdpdf.errors import PipelineError, TemplateError
+from mdpdf.errors import PipelineError, RendererError, TemplateError
 from mdpdf.fonts.manager import FontManager
+from mdpdf.markdown.ast import Document, MermaidBlock
+from mdpdf.markdown.ast import Image as ASTImage
 from mdpdf.markdown.parser import parse_markdown
 from mdpdf.markdown.transformers import run_transformers
 from mdpdf.markdown.transformers.collect_outline import collect_outline
@@ -32,6 +34,9 @@ from mdpdf.markdown.transformers.promote_toc import promote_toc
 from mdpdf.markdown.transformers.strip_yaml_frontmatter import strip_yaml_frontmatter
 from mdpdf.render.engine_base import RenderEngine
 from mdpdf.render.engine_reportlab import ReportLabEngine
+from mdpdf.renderers.base import RenderContext
+from mdpdf.renderers.image import ImageRenderer
+from mdpdf.renderers.mermaid_chain import select_mermaid_renderer
 
 _log = structlog.get_logger("mdpdf.pipeline")
 
@@ -69,6 +74,9 @@ class RenderRequest:
     deterministic: bool = False
     locale: str = "en"
     audit_enabled: bool = True
+    mermaid_renderer: Literal["auto", "kroki", "puppeteer", "pure"] = "auto"
+    kroki_url: str | None = None
+    allow_remote_assets: bool = False
 
 
 @dataclass(frozen=True)
@@ -183,6 +191,13 @@ class Pipeline:
         )
         parse_ms = int((time.perf_counter() - t_parse_start) * 1000)
 
+        # Asset Resolution phase: pre-walk AST and resolve external assets
+        # (Mermaid + image) so they're cached before the render phase. This
+        # populates the cache and makes asset_resolve_ms a meaningful metric.
+        t_assets_start = time.perf_counter()
+        self._prerender_assets(document, request, render_id)
+        asset_resolve_ms = int((time.perf_counter() - t_assets_start) * 1000)
+
         # Render phase: instantiate engine with brand styles if any
         engine = self._engine if styles is None else ReportLabEngine(brand_styles=styles)
         t_render_start = time.perf_counter()
@@ -211,7 +226,7 @@ class Pipeline:
             warnings=[],
             metrics=RenderMetrics(
                 parse_ms=parse_ms,
-                asset_resolve_ms=0,
+                asset_resolve_ms=asset_resolve_ms,
                 render_ms=render_ms,
                 post_process_ms=0,
                 total_ms=total_ms,
@@ -241,3 +256,30 @@ class Pipeline:
         if request.brand:
             return resolve_brand(BrandRegistry(brand_id=request.brand))
         return None
+
+    def _prerender_assets(
+        self, document: Document, request: RenderRequest, render_id: str,
+    ) -> None:
+        """Walk AST, eagerly render Mermaid and Image assets to populate cache."""
+        ctx = RenderContext(
+            cache_root=Path.home() / ".md-to-pdf" / "cache",
+            brand_pack=None,  # populated when we wire brand into RenderContext (Plan 4)
+            allow_remote_assets=request.allow_remote_assets,
+            deterministic=request.deterministic,
+        )
+
+        for node in document.children:
+            try:
+                if isinstance(node, MermaidBlock):
+                    renderer = select_mermaid_renderer(
+                        preference=request.mermaid_renderer,
+                        ctx=ctx,
+                        kroki_url_override=request.kroki_url,
+                    )
+                    renderer.render(node.source, ctx)
+                elif isinstance(node, ASTImage):
+                    ImageRenderer().render(node, ctx)
+            except RendererError as e:
+                if e.render_id is None:
+                    e.render_id = render_id
+                raise
