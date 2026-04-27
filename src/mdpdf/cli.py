@@ -220,6 +220,13 @@ def render_cmd(
         level="INFO" if json_output else "WARNING",
     )
 
+    if legacy_brand:
+        click.echo(
+            "Warning: --legacy-brand is deprecated and will be removed in v3.0. "
+            "Run 'md-to-pdf brand migrate <path>' to upgrade your brand pack.",
+            err=True,
+        )
+
     pipeline = Pipeline.from_env()
     from mdpdf.brand.overrides import parse_override
     parsed_overrides = [parse_override(o) for o in overrides]

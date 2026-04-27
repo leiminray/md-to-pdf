@@ -84,6 +84,16 @@ def test_deterministic_flag_no_longer_warns(tmp_path: Path):
     assert "not yet implemented" not in (result.stderr or "")
 
 
+def test_render_legacy_brand_emits_deprecation_stderr(tmp_path: Path) -> None:
+    """`md-to-pdf render --legacy-brand` emits a deprecation message on stderr."""
+    md = tmp_path / "in.md"
+    md.write_text("# Hi\n")
+    out = tmp_path / "out.pdf"
+    runner = CliRunner()
+    result = runner.invoke(main, [str(md), "-o", str(out), "--legacy-brand"])
+    assert "deprecated" in (result.stderr or "").lower()
+
+
 def test_bare_invocation_exits_with_usage_error():
     """`md-to-pdf` with no args dispatches to render, which then errors on
     missing INPUT_PATH (Click usage error → exit 2)."""

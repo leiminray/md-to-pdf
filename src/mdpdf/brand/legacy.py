@@ -15,6 +15,7 @@ warning when used.
 from __future__ import annotations
 
 import re
+import warnings as _warnings
 from pathlib import Path
 from typing import Any
 
@@ -22,6 +23,13 @@ import yaml
 
 from mdpdf.brand.schema import BrandPack
 from mdpdf.errors import BrandError
+
+_warnings.warn(
+    "mdpdf.brand.legacy is deprecated and will be removed in v3.0. "
+    "Migrate your brand pack with: md-to-pdf brand migrate <path>",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 
 def load_legacy_brand_pack(pack_root: Path) -> tuple[BrandPack, str]:
