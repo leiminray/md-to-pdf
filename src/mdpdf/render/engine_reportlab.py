@@ -28,16 +28,18 @@ from mdpdf.markdown.ast import (
     Heading,
     Inline,
     Link,
+    MermaidBlock,
     Paragraph,
     Strong,
     Text,
 )
 from mdpdf.markdown.ast import Image as ASTImage
 from mdpdf.render.engine_base import RenderEngine
-from mdpdf.render.flowables import FencedCodeCard
+from mdpdf.render.flowables import FencedCodeCard, MermaidImage
 from mdpdf.renderers.base import RenderContext
 from mdpdf.renderers.code_pygments import CodeRenderer
 from mdpdf.renderers.image import ImageRenderer
+from mdpdf.renderers.mermaid_chain import select_mermaid_renderer
 
 _PAGE_SIZES = {"A4": A4, "Letter": LETTER, "B5": B5, "Legal": LEGAL}
 
@@ -103,6 +105,16 @@ class ReportLabEngine(RenderEngine):
                 body_font_size=int(code_style.fontSize),
                 line_numbers=False,
             )]
+        if isinstance(node, MermaidBlock):
+            mctx = RenderContext(
+                cache_root=Path.home() / ".md-to-pdf" / "cache",
+                brand_pack=None,
+                allow_remote_assets=False,
+                deterministic=False,
+            )
+            mermaid_renderer = select_mermaid_renderer(preference="auto", ctx=mctx)
+            png_path = mermaid_renderer.render(node.source, mctx)
+            return [MermaidImage(image_path=png_path, caption=None)]
         if isinstance(node, ASTImage):
             img_ctx = RenderContext(
                 cache_root=Path.home() / ".md-to-pdf" / "cache",

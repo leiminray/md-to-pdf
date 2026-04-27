@@ -8,6 +8,7 @@ This module hosts the brand-styled Flowables used by `engine_reportlab`:
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 from xml.sax.saxutils import escape
 
 from reportlab.lib.colors import HexColor
@@ -97,6 +98,65 @@ class FencedCodeCard(Flowable):
             ("VALIGN", (0, 0), (-1, -1), "TOP"),
         ]))
         self._table = table
+
+    def wrap(self, available_width: float, available_height: float) -> tuple[float, float]:
+        assert self._table is not None  # noqa: S101 — type narrow for mypy
+        return self._table.wrap(available_width, available_height)
+
+    def draw(self) -> None:
+        assert self._table is not None  # noqa: S101 — type narrow for mypy
+        self._table.canv = self.canv
+        self._table.drawOn(self.canv, 0, 0)
+
+
+@dataclass
+class MermaidImage(Flowable):
+    """Mermaid diagram PNG with optional caption."""
+
+    image_path: Path
+    caption: str | None = None
+    max_width_mm: int = 170
+    caption_font_size: int = 8
+
+    def __post_init__(self) -> None:
+        Flowable.__init__(self)
+        from PIL import Image as PILImage
+        with PILImage.open(self.image_path) as img:
+            self._w_px, self._h_px = img.size
+        self._table: Table | None = None
+        self._build()
+
+    def _build(self) -> None:
+        from reportlab.platypus import Image as RLImage
+        max_width_pt = self.max_width_mm * mm
+        scale = min(1.0, max_width_pt / self._w_px)
+        img = RLImage(
+            str(self.image_path),
+            width=self._w_px * scale,
+            height=self._h_px * scale,
+        )
+        rows: list[list[Flowable]] = [[img]]
+        if self.caption:
+            cap_style = ParagraphStyle(
+                name="MermaidCaption",
+                fontName="Helvetica-Oblique",
+                fontSize=self.caption_font_size,
+                textColor=HexColor("#6e7781"),
+                alignment=1,  # centre
+                spaceBefore=2,
+            )
+            rows.append([RLParagraph(self.caption, cap_style)])
+        # KeepInFrame-like: a single-column Table keeps image+caption together
+        # within the parent frame (Table won't split mid-row without explicit
+        # splitByRow), giving us atomic placement.
+        self._table = Table(rows, colWidths=[max_width_pt])
+        self._table.setStyle(TableStyle([
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 0),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            ("TOPPADDING", (0, 0), (-1, -1), 0),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+        ]))
 
     def wrap(self, available_width: float, available_height: float) -> tuple[float, float]:
         assert self._table is not None  # noqa: S101 — type narrow for mypy
