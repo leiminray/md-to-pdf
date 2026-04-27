@@ -1,0 +1,48 @@
+site_name: md-to-pdf
+site_description: Markdown → PDF converter with brand-pack support, watermarking, and CJK fonts
+site_url: https://leiminray.github.io/md-to-pdf/
+repo_url: https://github.com/leiminray/md-to-pdf
+repo_name: leiminray/md-to-pdf
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  features:
+    - content.code.copy
+    - navigation.expand
+    - navigation.indexes
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+markdown_extensions:
+  - admonition
+  - codehilite
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Quickstart: quickstart.md
+  - CLI reference: cli.md
+  - Brand packs: brand-packs.md
+  - Watermarks: watermarks.md
+  - Determinism: determinism.md
+  - Roadmap: roadmap.md

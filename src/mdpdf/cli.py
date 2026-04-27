@@ -13,8 +13,10 @@ from pathlib import Path
 from typing import Literal, cast
 
 import click
+from reportlab.pdfbase import pdfmetrics
 
 from mdpdf import __version__
+from mdpdf.diagnostics.doctor import run_doctor
 from mdpdf.errors import (
     BrandError,
     FontError,
@@ -24,6 +26,7 @@ from mdpdf.errors import (
     SecurityError,
     TemplateError,
 )
+from mdpdf.fonts.installer import install_font
 from mdpdf.logging import configure_logging
 from mdpdf.pipeline import Pipeline, RenderRequest, RenderResult, WatermarkOptions
 
@@ -220,6 +223,13 @@ def render_cmd(
         level="INFO" if json_output else "WARNING",
     )
 
+    if legacy_brand:
+        click.echo(
+            "Warning: --legacy-brand is deprecated and will be removed in v3.0. "
+            "Run 'md-to-pdf brand migrate <path>' to upgrade your brand pack.",
+            err=True,
+        )
+
     pipeline = Pipeline.from_env()
     from mdpdf.brand.overrides import parse_override
     parsed_overrides = [parse_override(o) for o in overrides]
@@ -273,6 +283,76 @@ def render_cmd(
 def version() -> None:
     """Print the md-to-pdf version."""
     click.echo(f"md-to-pdf {__version__}")
+
+
+_BUNDLED_FONTS_DIR = Path(__file__).resolve().parents[2] / "fonts"
+_USER_FONTS_DIR = Path.home() / ".md-to-pdf" / "fonts"
+
+
+@main.group("fonts")
+def fonts_group() -> None:
+    """Font management commands."""
+
+
+@fonts_group.command("list")
+@click.option("--json", "as_json", is_flag=True, help="Emit results as JSON.")
+def fonts_list(as_json: bool) -> None:
+    """List built-in, bundled, and user-installed fonts."""
+    entries: list[dict[str, str]] = []
+    for name in sorted(pdfmetrics.getRegisteredFontNames()):
+        entries.append({"name": name, "source": "built-in"})
+    for source_dir, source_label in (
+        (_BUNDLED_FONTS_DIR, "bundled"),
+        (_USER_FONTS_DIR, "user"),
+    ):
+        if not source_dir.is_dir():
+            continue
+        for f in sorted(source_dir.iterdir()):
+            if f.suffix.lower() in {".ttf", ".otf"}:
+                entries.append({"name": f.stem, "source": source_label})
+
+    if as_json:
+        click.echo(json.dumps(entries, indent=2))
+    else:
+        click.echo(f"{'Name':<40} {'Source'}")
+        click.echo("-" * 50)
+        for entry in entries:
+            click.echo(f"{entry['name']:<40} {entry['source']}")
+
+
+@fonts_group.command("install")
+@click.argument("name")
+@click.option(
+    "--target-dir",
+    type=click.Path(file_okay=False, path_type=Path),
+    default=None,
+    help="Directory to save the font (default: ~/.md-to-pdf/fonts/).",
+)
+def fonts_install(name: str, target_dir: Path | None) -> None:
+    """Download and install a known font by NAME (e.g. noto-sans-sc)."""
+    try:
+        path = install_font(name, target_dir=target_dir)
+    except MdpdfError as e:
+        click.echo(f"{e.code}: {e.user_message}", err=True)
+        raise SystemExit(_exit_code_for(e)) from e
+    click.echo(f"Installed: {path}")
+
+
+@main.command("doctor")
+@click.option("--json", "as_json", is_flag=True, help="Emit report as JSON.")
+def doctor_cmd(as_json: bool) -> None:
+    """Print an environment health report."""
+    report = run_doctor()
+    if as_json:
+        click.echo(json.dumps(report, indent=2))
+    else:
+        for section, data in report.items():
+            click.echo(f"\n[{section}]")
+            if isinstance(data, dict):
+                for k, v in data.items():
+                    click.echo(f"  {k}: {v}")
+            else:
+                click.echo(f"  {data}")
 
 
 @main.group()

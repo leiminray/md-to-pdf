@@ -1,0 +1,253 @@
+UAT Fixture — CJK strict
+English structure and notes (same pattern as [Code] / [Code]); CJK literals intentionally 
+exercise [Code], embedded Noto, Chinese dates, and merged ATX recovery.
+Coverage: mixed zh/en wrapping, Chinese date 2026■4■24■ (aligned with [Code] ISO [Code]), 
+run-on [Code] → split, narrow table cells.
+Latin contact sample: Alex Morgan (two-word English name; visual check: no mid-word break).
+Normal H2 (outline sanity)
+Section for bookmark level checks.
+H3 sample
+Long mixed paragraph: IDIMSUM (Hong Kong) Technology Company Limited ■ ■■■■■■ — 
+exercises ReportLab [Code] at Latin–Han boundaries; padding is repeated so wrapping occurs at 
+A4 column width. Alex Morgan owns interface review; delivery by 2026■4■24■.
+Merged heading split (reference)
+The next line is a single source line [Code]; the pipeline splits it into H1 + H2 ([Code]).
+Part A
+Chapter B
+Narrow table (wrap stress)
+Column
+Details
+Date
+2026■4■24■
+Mixed
+Alex Morgan ■ ■■■■■■■■■■■■■■■■ IDIMSUM Phase2
+Version History
+Version
+Date
+Notes
+0.1
+2026■4■24■
+Fixture baseline
+Confidential — 
+Page 1 of 1
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+Document // unknown // <DATE>
+

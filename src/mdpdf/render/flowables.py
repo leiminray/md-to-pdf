@@ -108,6 +108,15 @@ class FencedCodeCard(Flowable):
         self._table.canv = self.canv
         self._table.drawOn(self.canv, 0, 0)
 
+    def split(self, available_width: float, available_height: float) -> list[Flowable]:
+        """Delegate splitting to the inner Table so long code blocks can span
+        pages. Without this, a code fence taller than the remaining page area
+        triggers ReportLab's "Flowable too large" LayoutError instead of
+        being broken across pages.
+        """
+        assert self._table is not None  # noqa: S101
+        return list(self._table.split(available_width, available_height))
+
 
 @dataclass
 class MermaidImage(Flowable):
