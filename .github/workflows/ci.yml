@@ -5,6 +5,9 @@ on:
     branches: ["main", "plan-*"]
   pull_request:
     branches: ["main"]
+  # Allow manual trigger of the full CI (including the gated `golden` job
+  # that normally runs only on push-to-main).
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -66,13 +69,19 @@ jobs:
           PYTHONUTF8: "1"
         run: python -m pytest -v --cov=src/mdpdf --cov-report=term-missing
 
-  # Golden harness + UAT integration job runs only on Linux because Kroki
-  # is provided as a Docker service (Linux-only on GitHub-hosted runners).
-  # Per pass-1 P5-003 the kroki service block is NOT placed inside the
-  # matrix job — the empty-string image expression crashes non-Linux
-  # runners with "image cannot be blank".
+  # Golden harness + UAT integration runs only on push-to-main. The Kroki
+  # Docker service consumes Actions minutes faster than plain runners, and
+  # the parity gate is a post-merge check rather than a per-PR gate. Run
+  # the same job manually via workflow_dispatch when verifying a PR
+  # locally is not enough.
+  #
+  # Linux-only because Kroki is a Docker service (Linux-only on
+  # GitHub-hosted runners). Per pass-1 P5-003, the kroki service block is
+  # NOT placed inside the matrix job — the empty-string image expression
+  # crashes non-Linux runners with "image cannot be blank".
   golden:
     name: Golden + UAT (ubuntu / py3.12 / kroki)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: test
     runs-on: ubuntu-latest
     services:
