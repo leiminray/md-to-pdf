@@ -20,6 +20,7 @@ scripts/md_to_pdf.py + brand_kits/ + the legacy test files) can land.
 from __future__ import annotations
 
 import hashlib
+import sys
 from pathlib import Path
 
 import pytest
@@ -51,6 +52,15 @@ _SOURCE_DATE_EPOCH = "1714400000"
 _WATERMARK_USER = "ci@example.com"
 
 
+@pytest.mark.skipif(
+    not sys.platform.startswith("linux"),
+    reason=(
+        "sha256 baselines are platform-specific (PDF byte content varies with "
+        "OS-level font rasterisation + ReportLab impl details); the canonical "
+        "platform for the parity gate is Linux. macOS / Windows runs use the "
+        "L1 (AST) and L3 (text-layer) golden tests for cross-platform coverage."
+    ),
+)
 @pytest.mark.parametrize(
     "fixture",
     discover_uat_fixtures(),
