@@ -40,7 +40,9 @@ def compute_column_widths(
     total_weight = sum(raw_weights) or float(n_cols)
     widths = [(w / total_weight) * available_width_pt for w in raw_weights]
 
-    min_w = (min_pct / 100.0) * available_width_pt
+    # Cap min_w when n_cols * min_pct > 100% — otherwise the minimum is
+    # infeasible and the residual-distribution loop produces negative widths.
+    min_w = min((min_pct / 100.0) * available_width_pt, available_width_pt / n_cols)
     max_w = (max_pct / 100.0) * available_width_pt
 
     # Iterate to convergence (≤ 6 passes per spec §2.1.5 reference)
@@ -49,16 +51,15 @@ def compute_column_widths(
         clamped: list[bool] = [False] * n_cols
         for i in range(n_cols):
             if widths[i] < min_w:
-                residual += min_w - widths[i]
+                residual += widths[i] - min_w  # negative — debt to repay
                 widths[i] = min_w
                 clamped[i] = True
             elif widths[i] > max_w:
-                residual += max_w - widths[i]  # negative
+                residual += widths[i] - max_w  # positive — surplus to redistribute
                 widths[i] = max_w
                 clamped[i] = True
         if abs(residual) < 0.5:
             break
-        # Distribute residual among non-clamped columns proportionally
         free_total = sum(widths[i] for i in range(n_cols) if not clamped[i])
         if free_total <= 0:
             break
@@ -67,8 +68,16 @@ def compute_column_widths(
                 share = (widths[i] / free_total) * residual
                 widths[i] += share
 
-    # Final normalisation to handle floating drift
+    # Final normalisation to handle floating drift — distribute among non-clamped
+    # columns when possible; only fall back to widths[0] when every column is
+    # clamped (so dropping below min_w there is unavoidable).
     drift = available_width_pt - sum(widths)
     if abs(drift) > 0.01 and widths:
-        widths[0] += drift
+        free_idx = [i for i in range(n_cols) if min_w < widths[i] < max_w]
+        if free_idx:
+            per = drift / len(free_idx)
+            for i in free_idx:
+                widths[i] += per
+        else:
+            widths[0] += drift
     return widths

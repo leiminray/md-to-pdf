@@ -7,6 +7,7 @@ from __future__ import annotations
 import hashlib
 import time
 import uuid
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
@@ -21,7 +22,7 @@ from mdpdf.brand.schema import BrandPack, load_brand_pack
 from mdpdf.brand.styles import build_brand_styles
 from mdpdf.errors import PipelineError, RendererError, TemplateError
 from mdpdf.fonts.manager import FontManager
-from mdpdf.markdown.ast import Document, MermaidBlock
+from mdpdf.markdown.ast import Block, Document, MermaidBlock, Paragraph
 from mdpdf.markdown.ast import Image as ASTImage
 from mdpdf.markdown.parser import parse_markdown
 from mdpdf.markdown.transformers import run_transformers
@@ -260,7 +261,17 @@ class Pipeline:
     def _prerender_assets(
         self, document: Document, request: RenderRequest, render_id: str,
     ) -> None:
-        """Walk AST, eagerly render Mermaid and Image assets to populate cache."""
+        """Resolve relative image paths against the source dir, then eagerly
+        render Mermaid and Image assets so they populate the disk cache before
+        the engine pass.
+        """
+        source_dir = (
+            request.source.parent
+            if request.source_type == "path" and isinstance(request.source, Path)
+            else Path.cwd()
+        )
+        self._resolve_image_paths(document, source_dir)
+
         ctx = RenderContext(
             cache_root=Path.home() / ".md-to-pdf" / "cache",
             brand_pack=None,  # populated when we wire brand into RenderContext (Plan 4)
@@ -268,7 +279,7 @@ class Pipeline:
             deterministic=request.deterministic,
         )
 
-        for node in document.children:
+        for node, image in self._iter_renderable_assets(document):
             try:
                 if isinstance(node, MermaidBlock):
                     renderer = select_mermaid_renderer(
@@ -277,9 +288,46 @@ class Pipeline:
                         kroki_url_override=request.kroki_url,
                     )
                     renderer.render(node.source, ctx)
-                elif isinstance(node, ASTImage):
-                    ImageRenderer().render(node, ctx)
+                elif image is not None:
+                    ImageRenderer().render(image, ctx)
             except RendererError as e:
                 if e.render_id is None:
                     e.render_id = render_id
                 raise
+
+    @staticmethod
+    def _resolve_image_paths(document: Document, source_dir: Path) -> None:
+        """Rewrite relative ASTImage.src to absolute paths against source_dir.
+        Remote URLs (http/https) and already-absolute paths are left alone.
+        """
+        for image in Pipeline._iter_images(document):
+            src = image.src
+            if src.startswith(("http://", "https://")):
+                continue
+            p = Path(src)
+            if not p.is_absolute():
+                image.src = str((source_dir / p).resolve())
+
+    @staticmethod
+    def _iter_images(document: Document) -> Iterator[ASTImage]:
+        for node in document.children:
+            if isinstance(node, ASTImage):
+                yield node
+            elif isinstance(node, Paragraph):
+                for child in node.children:
+                    if isinstance(child, ASTImage):
+                        yield child
+
+    @staticmethod
+    def _iter_renderable_assets(
+        document: Document,
+    ) -> Iterator[tuple[Block, ASTImage | None]]:
+        for node in document.children:
+            if isinstance(node, MermaidBlock):
+                yield node, None
+            elif isinstance(node, ASTImage):
+                yield node, node
+            elif isinstance(node, Paragraph):
+                for child in node.children:
+                    if isinstance(child, ASTImage):
+                        yield node, child

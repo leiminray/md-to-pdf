@@ -107,6 +107,10 @@ class ReportLabEngine(RenderEngine):
 
     def _convert_block(self, node: Block, body: ParagraphStyle) -> list[Flowable]:
         if isinstance(node, Paragraph):
+            # CommonMark wraps a standalone `![alt](src)` in a Paragraph; promote
+            # such image-only paragraphs to block-level Image flowables.
+            if len(node.children) == 1 and isinstance(node.children[0], ASTImage):
+                return self._convert_block(node.children[0], body)
             return [RLParagraph(self._inline_to_html(node.children), body)]
         if isinstance(node, Heading):
             level = max(1, min(node.level, 6))

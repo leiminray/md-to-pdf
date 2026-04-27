@@ -47,3 +47,23 @@ def test_six_column_table_distributes_proportionally() -> None:
     widths = compute_column_widths(cells, available_width_pt=540, min_pct=10, max_pct=70)
     assert len(widths) == 6
     assert widths[3] > widths[1]  # column 3 has the longest cell
+
+
+def test_min_pct_infeasible_does_not_yield_negative_widths() -> None:
+    """6 columns × 17% min_pct = 102% — infeasible. Algorithm must clamp the
+    minimum to available_width / n_cols rather than producing a negative width
+    via residual misdistribution. Previously triggered a ReportLab TypeError
+    when the negative width hit RLTable.wrap().
+    """
+    cells = [
+        ["col1", "col2", "col3", "col4", "col5", "col6"],
+        ["short", "longer text", "medium", "x", "y", "z"],
+        ["a", "b", "c", "d", "e", "f"],
+        ["header here", "more", "content", "more text", "x", "y"],
+    ]
+    widths = compute_column_widths(
+        cells, available_width_pt=493.0, min_pct=17, max_pct=70
+    )
+    assert len(widths) == 6
+    assert all(w > 0 for w in widths)
+    assert abs(sum(widths) - 493.0) < 1.0
