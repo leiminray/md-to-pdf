@@ -22,7 +22,13 @@ from mdpdf.brand.overrides import apply_overrides
 from mdpdf.brand.registry import BrandRegistry, resolve_brand
 from mdpdf.brand.schema import BrandPack, load_brand_pack
 from mdpdf.brand.styles import build_brand_styles
-from mdpdf.errors import MdpdfError, PipelineError, RendererError, TemplateError
+from mdpdf.errors import (
+    MdpdfError,
+    PipelineError,
+    RendererError,
+    SecurityError,
+    TemplateError,
+)
 from mdpdf.fonts.manager import FontManager
 from mdpdf.markdown.ast import Block, Document, Heading, MermaidBlock, Paragraph
 from mdpdf.markdown.ast import Image as ASTImage
@@ -258,6 +264,11 @@ class Pipeline:
             apply_overrides(payload, request.brand_overrides)
             brand_pack = BrandPack(**payload)
 
+        # Validate phase: brand SecurityConfig.watermark_min_level gates the
+        # request's watermark level (Task 16). Runs after override-resolution
+        # so a brand pack with overrides applied still enforces its policy.
+        self._check_watermark_policy(brand_pack, request.watermark.level, render_id)
+
         # Build styles + prepare font manager
         styles = build_brand_styles(brand_pack) if brand_pack else None
         bundled_fonts = Path(__file__).resolve().parents[2] / "fonts"
@@ -417,6 +428,30 @@ class Pipeline:
         )
 
         return result
+
+    @staticmethod
+    def _check_watermark_policy(
+        brand: BrandPack | None, requested_level: str, render_id: str
+    ) -> None:
+        """Raise SecurityError if the requested watermark level is below the
+        brand's mandated minimum (spec §5.2). Permissive defaults: a brand
+        with no SecurityConfig (or watermark_min_level == "L0") allows any
+        level including L0.
+        """
+        if brand is None:
+            return
+        rank = {"L0": 0, "L1": 1, "L2": 1, "L1+L2": 2}
+        min_level = brand.security.watermark_min_level
+        if rank.get(requested_level, 0) < rank.get(min_level, 0):
+            raise SecurityError(
+                code="WATERMARK_DENIED",
+                user_message=(
+                    f"brand '{brand.id}' requires watermark level "
+                    f"'{min_level}' or stronger; --no-watermark / "
+                    f"watermark_level='{requested_level}' was requested"
+                ),
+                render_id=render_id,
+            )
 
     def _resolve_brand(self, request: RenderRequest) -> BrandPack | None:
         if request.brand_config:

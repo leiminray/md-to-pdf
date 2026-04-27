@@ -335,6 +335,29 @@ def test_pipeline_override_to_forbidden_field_raises(tmp_path: Path):
 class TestPipelinePostProcess:
     """Task 11 — Pipeline runs PostProcessPipeline after engine + populates metric."""
 
+    def test_brand_security_gates_no_watermark(self, tmp_path: Path) -> None:
+        """Task 16 — a brand requiring watermark_min_level=L1+L2 rejects --no-watermark."""
+        from mdpdf.errors import SecurityError
+        from tests.unit.brand.test_registry import _make_brand
+
+        pack = _make_brand(tmp_path, brand_id="strict")
+        # Default watermark_min_level is "L1+L2" per BrandSecurityConfig.
+
+        src = tmp_path / "in.md"
+        src.write_text("# x\n")
+        pipeline = Pipeline.from_env()
+        with pytest.raises(SecurityError) as exc_info:
+            pipeline.render(
+                RenderRequest(
+                    source=src,
+                    source_type="path",
+                    output=tmp_path / "out.pdf",
+                    brand_pack_dir=pack,
+                    watermark=WatermarkOptions(level="L0"),
+                )
+            )
+        assert exc_info.value.code == "WATERMARK_DENIED"
+
     def test_pipeline_post_process_ms_populated(self, tmp_path: Path) -> None:
         src = tmp_path / "in.md"
         src.write_text("# Title\n\nbody.")
@@ -471,6 +494,41 @@ class TestPipelineDeterminism:
             r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
             result.render_id,
         )
+
+    def test_deterministic_auto_mermaid_with_only_pure_raises_non_deterministic(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Task 17 — auto mermaid selection in deterministic mode rejects pure
+        even when it's the only available renderer."""
+        from mdpdf.errors import RendererError
+
+        monkeypatch.delenv("KROKI_URL", raising=False)
+        monkeypatch.setattr(
+            "mdpdf.renderers.mermaid_puppeteer._find_mmdc", lambda: None
+        )
+
+        class _FakeMermaid:
+            @staticmethod
+            def to_png(source: str) -> bytes:
+                return b""
+
+        monkeypatch.setattr(
+            "mdpdf.renderers.mermaid_pure._import_mermaid", lambda: _FakeMermaid
+        )
+
+        src = tmp_path / "in.md"
+        src.write_text("# T\n\n```mermaid\ngraph TD\n  A --> B\n```\n")
+        pipeline = Pipeline.from_env()
+        with pytest.raises(RendererError) as exc_info:
+            pipeline.render(
+                RenderRequest(
+                    source=src,
+                    source_type="path",
+                    output=tmp_path / "out.pdf",
+                    deterministic=True,
+                )
+            )
+        assert exc_info.value.code == "RENDERER_NON_DETERMINISTIC"
 
     def test_source_date_epoch_triggers_deterministic_id(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch

@@ -61,6 +61,17 @@ def select_mermaid_renderer(
         return PuppeteerMermaidRenderer()
     if mermaid_pure._import_mermaid() is not None and not ctx.deterministic:
         return PureMermaidRenderer()
+    # If deterministic mode excluded the only available renderer, raise the
+    # determinism-specific error so the message points at the right fix
+    # rather than suggesting "install mmdc" (P4-015 pass-2 patch).
+    if ctx.deterministic and mermaid_pure._import_mermaid() is not None:
+        raise RendererError(
+            code="RENDERER_NON_DETERMINISTIC",
+            user_message=(
+                "deterministic mode requires a deterministic mermaid renderer "
+                "(kroki or puppeteer); install one or drop --deterministic"
+            ),
+        )
     raise RendererError(
         code="MERMAID_RENDERER_UNAVAILABLE",
         user_message=(
