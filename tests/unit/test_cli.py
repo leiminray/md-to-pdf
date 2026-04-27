@@ -254,3 +254,49 @@ def test_brand_show_subcommand(tmp_path: Path) -> None:
     result = runner.invoke(main, ["brand", "show", "--brand-pack-dir", str(pack)])
     assert result.exit_code == 0
     assert "show1" in result.output
+
+
+def test_mermaid_renderer_flag_accepts_choices(tmp_path: Path) -> None:
+    src = tmp_path / "in.md"
+    src.write_text("# x\n")
+    out = tmp_path / "o.pdf"
+    runner = CliRunner()
+    for choice in ["auto", "kroki", "puppeteer", "pure"]:
+        result = runner.invoke(
+            main, [str(src), "-o", str(out), "--mermaid-renderer", choice]
+        )
+        # Click exit-code 2 ⇒ flag rejected; we only assert the flag was accepted.
+        assert result.exit_code != 2 or "Invalid value" not in (result.output or "")
+
+
+def test_mermaid_renderer_invalid_choice_rejected(tmp_path: Path) -> None:
+    src = tmp_path / "in.md"
+    src.write_text("# x\n")
+    out = tmp_path / "o.pdf"
+    runner = CliRunner()
+    result = runner.invoke(
+        main, [str(src), "-o", str(out), "--mermaid-renderer", "bogus"]
+    )
+    assert result.exit_code == 2
+    # Click 8.3+ routes the error to stderr, exposed via .stderr on the result.
+    assert "Invalid value" in (result.stderr or result.output)
+
+
+def test_allow_remote_assets_flag(tmp_path: Path) -> None:
+    src = tmp_path / "in.md"
+    src.write_text("# x\n")
+    out = tmp_path / "o.pdf"
+    runner = CliRunner()
+    result = runner.invoke(main, [str(src), "-o", str(out), "--allow-remote-assets"])
+    assert result.exit_code == 0
+
+
+def test_kroki_url_flag_accepted(tmp_path: Path) -> None:
+    src = tmp_path / "in.md"
+    src.write_text("# x\n")
+    out = tmp_path / "o.pdf"
+    runner = CliRunner()
+    result = runner.invoke(
+        main, [str(src), "-o", str(out), "--kroki-url", "http://kroki.local"]
+    )
+    assert result.exit_code == 0

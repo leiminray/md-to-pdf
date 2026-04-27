@@ -10,6 +10,7 @@ import getpass
 import json
 import os
 from pathlib import Path
+from typing import Literal, cast
 
 import click
 
@@ -152,6 +153,24 @@ def main() -> None:
     help="Accept v1 brand_kits/-style layout.",
 )
 @click.option(
+    "--mermaid-renderer",
+    type=click.Choice(["auto", "kroki", "puppeteer", "pure"]),
+    default="auto",
+    show_default=True,
+    help="Mermaid renderer preference.",
+)
+@click.option(
+    "--kroki-url",
+    default=None,
+    help="Override KROKI_URL env var for Mermaid rendering.",
+)
+@click.option(
+    "--allow-remote-assets",
+    is_flag=True,
+    default=False,
+    help="Allow http(s):// image URLs and brand assets.",
+)
+@click.option(
     "--json",
     "json_output",
     is_flag=True,
@@ -173,6 +192,9 @@ def render_cmd(
     brand_config: Path | None,
     overrides: tuple[str, ...],
     legacy_brand: bool,
+    mermaid_renderer: str,
+    kroki_url: str | None,
+    allow_remote_assets: bool,
     json_output: bool,
 ) -> None:
     """Render INPUT_PATH (markdown) to a PDF."""
@@ -212,6 +234,11 @@ def render_cmd(
         deterministic=deterministic,
         locale=locale,
         audit_enabled=not no_audit,
+        mermaid_renderer=cast(
+            Literal["auto", "kroki", "puppeteer", "pure"], mermaid_renderer
+        ),
+        kroki_url=kroki_url,
+        allow_remote_assets=allow_remote_assets,
     )
 
     try:
