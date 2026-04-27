@@ -84,6 +84,39 @@ def test_deterministic_flag_no_longer_warns(tmp_path: Path):
     assert "not yet implemented" not in (result.stderr or "")
 
 
+def test_fonts_list_exits_zero() -> None:
+    runner = CliRunner()
+    result = runner.invoke(main, ["fonts", "list"])
+    assert result.exit_code == 0, result.output
+
+
+def test_fonts_list_contains_helvetica() -> None:
+    runner = CliRunner()
+    result = runner.invoke(main, ["fonts", "list"])
+    assert result.exit_code == 0
+    assert "Helvetica" in result.output
+
+
+def test_fonts_list_json_output_is_list() -> None:
+    runner = CliRunner()
+    result = runner.invoke(main, ["fonts", "list", "--json"])
+    assert result.exit_code == 0, result.output
+    data = json.loads(result.output)
+    assert isinstance(data, list)
+    assert len(data) > 0
+    for entry in data:
+        assert "name" in entry
+        assert "source" in entry
+
+
+def test_fonts_install_unknown_font_exits_4() -> None:
+    """Unknown font name → FontError → exit code 4."""
+    runner = CliRunner()
+    result = runner.invoke(main, ["fonts", "install", "no-such-font"])
+    assert result.exit_code == 4
+    assert "FONT_NOT_FOUND" in (result.stderr or result.output)
+
+
 def test_render_legacy_brand_emits_deprecation_stderr(tmp_path: Path) -> None:
     """`md-to-pdf render --legacy-brand` emits a deprecation message on stderr."""
     md = tmp_path / "in.md"
