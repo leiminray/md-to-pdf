@@ -42,14 +42,18 @@ def test_engine_renders_heading(tmp_path: Path):
 
 
 def test_unsupported_node_renders_placeholder(tmp_path: Path):
-    """In Plan 1, unsupported node types render as `[unsupported: <type>]`."""
-    from mdpdf.markdown.ast import CodeFence
-    doc = Document(children=[CodeFence(lang="python", content="x = 1")])
+    """Unsupported node types render as `[unsupported: <type>]`.
+
+    `CodeFence` is dispatched by Task 5 onward, so use `ThematicBreak`
+    here (still unsupported until Plan 4).
+    """
+    from mdpdf.markdown.ast import ThematicBreak
+    doc = Document(children=[ThematicBreak()])
     out = tmp_path / "u.pdf"
     ReportLabEngine().render(doc, out)
     text = "".join(p.extract_text() for p in PdfReader(str(out)).pages)
     assert "unsupported" in text.lower()
-    assert "codefence" in text.lower()
+    assert "thematicbreak" in text.lower()
 
 
 def test_engine_does_not_leave_partial_file_on_error(tmp_path: Path, monkeypatch):
@@ -78,3 +82,15 @@ def test_engine_does_not_leave_partial_file_on_error(tmp_path: Path, monkeypatch
     assert not out.exists(), "atomic_write must roll back partial writes"
     leftovers = list(tmp_path.glob("should-not-exist.pdf*"))
     assert leftovers == [], f"unexpected leftovers: {leftovers}"
+
+
+def test_engine_renders_code_fence_no_placeholder(tmp_path: Path):
+    """CodeFence must NOT render as `[unsupported: CodeFence]` after Plan 3."""
+    from mdpdf.markdown.ast import CodeFence, Document
+    doc = Document(children=[CodeFence(lang="python", content="def f(): return 1\n")])
+    engine = ReportLabEngine()
+    out = tmp_path / "fence.pdf"
+    engine.render(doc, out)
+    text = "".join(p.extract_text() for p in PdfReader(str(out)).pages)
+    assert "def f" in text
+    assert "[unsupported" not in text

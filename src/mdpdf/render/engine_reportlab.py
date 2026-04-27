@@ -21,6 +21,7 @@ from mdpdf.brand.styles import BrandStyles
 from mdpdf.cache.tempfiles import atomic_write
 from mdpdf.markdown.ast import (
     Block,
+    CodeFence,
     Document,
     Emphasis,
     Heading,
@@ -31,6 +32,9 @@ from mdpdf.markdown.ast import (
     Text,
 )
 from mdpdf.render.engine_base import RenderEngine
+from mdpdf.render.flowables import FencedCodeCard
+from mdpdf.renderers.base import RenderContext
+from mdpdf.renderers.code_pygments import CodeRenderer
 
 _PAGE_SIZES = {"A4": A4, "Letter": LETTER, "B5": B5, "Legal": LEGAL}
 
@@ -79,7 +83,24 @@ class ReportLabEngine(RenderEngine):
             level = max(1, min(node.level, 6))
             style = self._brand_styles.paragraph_styles[f"H{level}"]
             return [RLParagraph(self._inline_to_html(node.children), style)]
-        # Other AST node types remain Plan 3 territory.
+        if isinstance(node, CodeFence):
+            ctx = RenderContext(
+                cache_root=Path.home() / ".md-to-pdf" / "cache",
+                brand_pack=None,
+                allow_remote_assets=False,
+                deterministic=False,
+            )
+            result = CodeRenderer().render(node, ctx)
+            code_style = self._brand_styles.paragraph_styles["Code"]
+            accent = code_style.textColor
+            return [FencedCodeCard(
+                result=result,
+                accent_color=str(accent.hexval()) if hasattr(accent, "hexval") else "#0066CC",
+                body_font=code_style.fontName,
+                body_font_size=int(code_style.fontSize),
+                line_numbers=False,
+            )]
+        # Other AST node types remain Plan 3 territory until subsequent tasks land.
         unsupported = ParagraphStyle(
             "Unsupported",
             parent=body,
