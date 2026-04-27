@@ -82,3 +82,67 @@ def test_renderer_error_codes_documented():
         "RENDERER_NON_DETERMINISTIC",
     ]:
         assert code in docstring, f"missing {code} in RendererError docstring"
+
+
+# ── Plan 4 error code tests ────────────────────────────────────────────────
+
+
+def test_watermark_denied_code() -> None:
+    err = SecurityError(code="WATERMARK_DENIED", user_message="Watermark denied by brand policy.")
+    assert err.code == "WATERMARK_DENIED"
+    assert isinstance(err, SecurityError)
+
+
+def test_watermark_contrast_too_low_code() -> None:
+    err = SecurityError(
+        code="WATERMARK_CONTRAST_TOO_LOW",
+        user_message="Watermark colour contrast ratio 1.02 is below minimum 1.05.",
+    )
+    assert err.code == "WATERMARK_CONTRAST_TOO_LOW"
+    assert isinstance(err, SecurityError)
+
+
+def test_audit_log_write_failed_code() -> None:
+    err = PipelineError(
+        code="AUDIT_LOG_WRITE_FAILED",
+        user_message="Cannot write to audit log.",
+        technical_details="/home/user/.md-to-pdf/audit.jsonl: Permission denied",
+    )
+    assert err.code == "AUDIT_LOG_WRITE_FAILED"
+    assert isinstance(err, PipelineError)
+
+
+def test_deterministic_violation_code() -> None:
+    err = PipelineError(
+        code="DETERMINISTIC_VIOLATION",
+        user_message="Non-deterministic renderer 'pure' selected in --deterministic mode.",
+    )
+    assert err.code == "DETERMINISTIC_VIOLATION"
+    assert isinstance(err, PipelineError)
+
+
+def test_security_error_exit_code() -> None:
+    """SecurityError maps to exit code 3 via _EXIT_BY_CODE."""
+    from mdpdf.cli import _exit_code_for
+    err = SecurityError(code="WATERMARK_CONTRAST_TOO_LOW", user_message="contrast too low")
+    assert _exit_code_for(err) == 3
+
+
+def test_pipeline_error_exit_code_for_audit_fail() -> None:
+    from mdpdf.cli import _exit_code_for
+    err = PipelineError(code="AUDIT_LOG_WRITE_FAILED", user_message="write failed")
+    assert _exit_code_for(err) == 1
+
+
+def test_security_error_docs_plan4_codes() -> None:
+    """Plan 4 codes are documented in SecurityError docstring."""
+    docstring = SecurityError.__doc__ or ""
+    for code in ["WATERMARK_DENIED", "WATERMARK_CONTRAST_TOO_LOW"]:
+        assert code in docstring, f"missing {code} in SecurityError docstring"
+
+
+def test_pipeline_error_docs_plan4_codes() -> None:
+    """Plan 4 codes are documented in PipelineError docstring."""
+    docstring = PipelineError.__doc__ or ""
+    for code in ["AUDIT_LOG_WRITE_FAILED", "DETERMINISTIC_VIOLATION"]:
+        assert code in docstring, f"missing {code} in PipelineError docstring"

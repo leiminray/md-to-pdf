@@ -59,11 +59,15 @@ class RendererError(MdpdfError):
 
 
 class SecurityError(MdpdfError):
-    """Sandbox / safe-path violations.
+    """Sandbox / safe-path violations and watermark policy errors.
 
-    Codes: PATH_ESCAPE, REMOTE_ASSET_DENIED.
+    Codes: PATH_ESCAPE, REMOTE_ASSET_DENIED, WATERMARK_DENIED,
+    WATERMARK_CONTRAST_TOO_LOW.
     """
 
 
 class PipelineError(MdpdfError):
-    """Catch-all for pipeline-orchestration errors."""
+    """Catch-all for pipeline-orchestration errors.
+
+    Codes: AUDIT_LOG_WRITE_FAILED, DETERMINISTIC_VIOLATION.
+    """
