@@ -32,15 +32,18 @@ from mdpdf.markdown.ast import (
     Link,
     ListBlock,
     MermaidBlock,
+    OutlineEntry,
     Paragraph,
     Strong,
     Text,
 )
 from mdpdf.markdown.ast import Image as ASTImage
 from mdpdf.markdown.ast import Table as ASTTable
+from mdpdf.markdown.transformers.collect_outline import _inline_to_plain
 from mdpdf.render.engine_base import RenderEngine
 from mdpdf.render.flowables import CalloutBox, FencedCodeCard, MermaidImage
 from mdpdf.render.lists import ast_list_to_flowable
+from mdpdf.render.outline import HeadingBookmark
 from mdpdf.render.tables import compute_column_widths
 from mdpdf.renderers.base import RenderContext
 from mdpdf.renderers.code_pygments import CodeRenderer
@@ -83,8 +86,23 @@ class ReportLabEngine(RenderEngine):
     def _convert(self, document: Document) -> list[Flowable]:
         body = self._brand_styles.paragraph_styles["Body"]
         out: list[Flowable] = []
+        consumed: set[str] = set()
+
+        def _next_entry_for(plain: str) -> OutlineEntry | None:
+            for entry in document.outline:
+                if entry.plain_text == plain and entry.bookmark_id not in consumed:
+                    consumed.add(entry.bookmark_id)
+                    return entry
+            return None
+
         for node in document.children:
-            out.extend(self._convert_block(node, body))
+            flowables = self._convert_block(node, body)
+            if isinstance(node, Heading) and flowables:
+                plain = _inline_to_plain(node.children)
+                entry = _next_entry_for(plain)
+                if entry is not None:
+                    flowables[0] = HeadingBookmark(inner=flowables[0], entry=entry)
+            out.extend(flowables)
         return out
 
     def _convert_block(self, node: Block, body: ParagraphStyle) -> list[Flowable]:
