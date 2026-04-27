@@ -54,6 +54,7 @@ class RendererError(MdpdfError):
     - MERMAID_RESOURCE_LIMIT — source too large, too many nodes, too deep, or output > 10MB
     - MERMAID_RENDERER_UNAVAILABLE — neither kroki, mmdc, nor mermaid-py is reachable
     - RENDERER_NON_DETERMINISTIC — pure-Python mermaid renderer used in --deterministic mode
+    - IMAGE_RENDERER_UNAVAILABLE — cairosvg / libcairo missing for SVG rasterisation
     """
 
 
