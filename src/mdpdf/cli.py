@@ -100,28 +100,41 @@ def main() -> None:
     "--locale",
     default="en",
     show_default=True,
-    hidden=True,
-    help="(v2.0a1: no-op; locale-aware header/footer lands in Plan 2+.)",
+    help="Output locale for footer + watermark text (e.g. en, zh-CN).",
 )
 @click.option(
     "--deterministic",
     is_flag=True,
     default=False,
-    hidden=True,
-    help="(v2.0a1: no-op; deterministic mode lands in Plan 4.)",
+    help=(
+        "Produce bit-identical PDFs for identical inputs. Set "
+        "SOURCE_DATE_EPOCH to fix the create-date too."
+    ),
 )
 @click.option(
     "--no-audit",
     is_flag=True,
     default=False,
-    hidden=True,
-    help="(v2.0a1: no-op; audit log lands in Plan 4.)",
+    help="Skip writing render.start / render.complete / render.error audit events.",
 )
 @click.option(
     "--watermark-user",
     default=None,
-    hidden=True,
-    help="(v2.0a1: no-op; watermarking lands in Plan 4.)",
+    help="User identity embedded in L1 + L2 watermarks (default: $USER).",
+)
+@click.option(
+    "--no-watermark",
+    is_flag=True,
+    default=False,
+    help="Skip the L1 visible diagonal watermark (sets watermark level to L0).",
+)
+@click.option(
+    "--watermark-text",
+    default=None,
+    help=(
+        "Override the L1 watermark text template. "
+        "Available keys: {brand_name}, {user}, {render_date}."
+    ),
 )
 @click.option(
     "--brand",
@@ -192,6 +205,8 @@ def render_cmd(
     brand_config: Path | None,
     overrides: tuple[str, ...],
     legacy_brand: bool,
+    no_watermark: bool,
+    watermark_text: str | None,
     mermaid_renderer: str,
     kroki_url: str | None,
     allow_remote_assets: bool,
@@ -205,21 +220,12 @@ def render_cmd(
         level="INFO" if json_output else "WARNING",
     )
 
-    if deterministic:
-        click.echo(
-            "warning: --deterministic accepted but not yet implemented (lands in Plan 4)",
-            err=True,
-        )
-    if watermark_user:
-        click.echo(
-            "warning: --watermark-user accepted but watermarking not yet "
-            "implemented (lands in Plan 4)",
-            err=True,
-        )
-
     pipeline = Pipeline.from_env()
     from mdpdf.brand.overrides import parse_override
     parsed_overrides = [parse_override(o) for o in overrides]
+    watermark_level: Literal["L0", "L1", "L2", "L1+L2"] = (
+        "L0" if no_watermark else "L1+L2"
+    )
     req = RenderRequest(
         source=input_path,
         source_type="path",
@@ -230,7 +236,11 @@ def render_cmd(
         brand_config=brand_config,
         brand_overrides=parsed_overrides,
         legacy_brand=legacy_brand,
-        watermark=WatermarkOptions(user=watermark_user or _resolve_default_user()),
+        watermark=WatermarkOptions(
+            user=watermark_user or _resolve_default_user(),
+            level=watermark_level,
+            custom_text=watermark_text,
+        ),
         deterministic=deterministic,
         locale=locale,
         audit_enabled=not no_audit,

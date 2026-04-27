@@ -27,8 +27,10 @@ dependencies = [
   "markdown-it-py>=3.0",
   "mdit-py-plugins>=0.4",
   "Pillow>=10.0",
+  "pikepdf>=8.0",
   "pydantic>=2.5",
   "pygments>=2.17",
+  "pypdf>=4.0",
   "pyyaml>=6.0",
   "reportlab>=4.0",
   "structlog>=24.1",
@@ -93,3 +95,13 @@ select = ["E", "F", "I", "B", "UP", "N", "S", "C4", "SIM"]
 strict = true
 python_version = "3.10"
 files = ["src/mdpdf"]
+
+# pikepdf does not ship stubs and is imported at module top in
+# security/watermark_l2.py + security/deterministic.py. cairosvg / mermaid
+# also lack stubs but are imported lazily inside function bodies with
+# inline `# type: ignore[import-untyped]` comments — those existing
+# suppressions stay in place so we don't suppress import-not-found
+# project-wide for them.
+[[tool.mypy.overrides]]
+module = ["pikepdf", "pikepdf.*"]
+ignore_missing_imports = true

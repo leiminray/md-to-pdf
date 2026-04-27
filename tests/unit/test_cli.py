@@ -52,28 +52,36 @@ def test_render_template_other_than_generic_exits_2(tmp_path: Path):
     assert "TEMPLATE_NOT_FOUND" in result.stderr
 
 
-def test_help_does_not_advertise_unimplemented_flags():
+def test_help_advertises_plan4_flags():
+    """Plan 4 unhid the previously-hidden flags; verify they're now visible
+    and that the new --no-watermark / --watermark-text flags also show up."""
     runner = CliRunner()
     result = runner.invoke(main, ["render", "--help"])
     assert result.exit_code == 0
-    # Hidden flags must NOT appear in --help output.
-    assert "--deterministic" not in result.output
-    assert "--watermark-user" not in result.output
-    assert "--no-audit" not in result.output
-    assert "--locale" not in result.output
-    # Visible flags MUST appear.
-    assert "--template" in result.output
-    assert "--json" in result.output
+    for flag in (
+        "--template",
+        "--json",
+        "--deterministic",
+        "--watermark-user",
+        "--no-audit",
+        "--locale",
+        "--no-watermark",
+        "--watermark-text",
+    ):
+        assert flag in result.output, f"--help should advertise {flag}"
 
 
-def test_deterministic_flag_warns(tmp_path: Path):
+def test_deterministic_flag_no_longer_warns(tmp_path: Path):
+    """Plan 4 implements deterministic mode; the 'not yet implemented' warning
+    is gone."""
     src = tmp_path / "in.md"
     src.write_text("# x")
     out = tmp_path / "out.pdf"
     runner = CliRunner()
     result = runner.invoke(main, [str(src), "-o", str(out), "--deterministic"])
     assert result.exit_code == 0
-    assert "not yet implemented" in result.stderr
+    assert "not yet implemented" not in (result.output or "")
+    assert "not yet implemented" not in (result.stderr or "")
 
 
 def test_bare_invocation_exits_with_usage_error():
