@@ -1,0 +1,108 @@
+"""Custom ReportLab Flowables (spec §2.1.5).
+
+This module hosts the brand-styled Flowables used by `engine_reportlab`:
+- FencedCodeCard: code fences with lang badge + accent bar + line numbers
+- MermaidImage:   diagram PNG with optional caption (Task 13)
+- CalloutBox:     bordered card for blockquotes (Task 16)
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass
+from xml.sax.saxutils import escape
+
+from reportlab.lib.colors import HexColor
+from reportlab.lib.styles import ParagraphStyle
+from reportlab.lib.units import mm
+from reportlab.platypus import Flowable, Spacer, Table, TableStyle
+from reportlab.platypus import Paragraph as RLParagraph
+
+from mdpdf.renderers.code_pygments import CodeRenderResult
+
+
+@dataclass
+class FencedCodeCard(Flowable):
+    """A code-fence flowable with lang badge, left accent bar, optional line numbers."""
+
+    result: CodeRenderResult
+    accent_color: str = "#0066CC"
+    body_font: str = "Courier"
+    body_font_size: int = 9
+    line_numbers: bool = False
+    badge_font_size: int = 7
+
+    def __post_init__(self) -> None:
+        # ReportLab Flowable base does not use __init__ args we need; init manually.
+        Flowable.__init__(self)
+        self._table: Table | None = None
+        self._build()
+
+    def _build(self) -> None:
+        body_style = ParagraphStyle(
+            name="FencedBody",
+            fontName=self.body_font,
+            fontSize=self.body_font_size,
+            leading=int(self.body_font_size * 1.4),
+            textColor=HexColor("#1f2328"),
+            wordWrap="CJK",
+        )
+        gutter_style = ParagraphStyle(
+            name="FencedGutter",
+            fontName=self.body_font,
+            fontSize=self.body_font_size,
+            leading=int(self.body_font_size * 1.4),
+            textColor=HexColor("#6e7781"),
+            alignment=2,  # right-aligned
+        )
+
+        body_lines: list[str] = []
+        for line_frags in self.result.lines:
+            html_parts: list[str] = []
+            for frag in line_frags:
+                html_parts.append(
+                    f'<font color="{frag.color}">{escape(frag.text) or " "}</font>'
+                )
+            body_lines.append("".join(html_parts) or " ")
+        body_paragraph = RLParagraph("<br/>".join(body_lines), body_style)
+
+        rows: list[list[Flowable | str]] = []
+        if self.result.lang:
+            badge = RLParagraph(
+                f'<font color="#6e7781" size="{self.badge_font_size}">{self.result.lang}</font>',
+                ParagraphStyle(name="LangBadge", alignment=2, fontName=self.body_font),
+            )
+            rows.append(["", badge])
+            rows.append(["", Spacer(1, 2)])
+
+        if self.line_numbers:
+            line_number_html = "<br/>".join(str(i + 1) for i, _ in enumerate(self.result.lines))
+            gutter = RLParagraph(line_number_html, gutter_style)
+            rows.append([gutter, body_paragraph])
+        else:
+            rows.append(["", body_paragraph])
+
+        col_widths: list[float] = (
+            [9 * mm, None]  # type: ignore[list-item]
+            if self.line_numbers
+            else [3 * mm, None]  # type: ignore[list-item]
+        )
+
+        table = Table(rows, colWidths=col_widths)
+        table.setStyle(TableStyle([
+            ("LINEBEFORE", (0, 0), (0, -1), 2, HexColor(self.accent_color)),
+            ("BACKGROUND", (0, 0), (-1, -1), HexColor("#f6f8fa")),
+            ("LEFTPADDING", (0, 0), (-1, -1), 4),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+            ("TOPPADDING", (0, 0), (-1, -1), 2),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ]))
+        self._table = table
+
+    def wrap(self, available_width: float, available_height: float) -> tuple[float, float]:
+        assert self._table is not None  # noqa: S101 — type narrow for mypy
+        return self._table.wrap(available_width, available_height)
+
+    def draw(self) -> None:
+        assert self._table is not None  # noqa: S101 — type narrow for mypy
+        self._table.canv = self.canv
+        self._table.drawOn(self.canv, 0, 0)
