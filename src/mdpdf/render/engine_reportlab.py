@@ -15,7 +15,8 @@ from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
 from reportlab.platypus import Image as RLImage
 from reportlab.platypus import Paragraph as RLParagraph
-from reportlab.platypus import SimpleDocTemplate, Spacer
+from reportlab.platypus import SimpleDocTemplate, Spacer, TableStyle
+from reportlab.platypus import Table as RLTable
 from reportlab.platypus.flowables import Flowable
 
 from mdpdf.brand.styles import BrandStyles
@@ -35,8 +36,10 @@ from mdpdf.markdown.ast import (
     Text,
 )
 from mdpdf.markdown.ast import Image as ASTImage
+from mdpdf.markdown.ast import Table as ASTTable
 from mdpdf.render.engine_base import RenderEngine
 from mdpdf.render.flowables import CalloutBox, FencedCodeCard, MermaidImage
+from mdpdf.render.tables import compute_column_widths
 from mdpdf.renderers.base import RenderContext
 from mdpdf.renderers.code_pygments import CodeRenderer
 from mdpdf.renderers.image import ImageRenderer
@@ -131,6 +134,29 @@ class ReportLabEngine(RenderEngine):
                 width=img_result.width_px * scale,
                 height=img_result.height_px * scale,
             )]
+        if isinstance(node, ASTTable):
+            cells_text: list[list[str]] = []
+            header_text = [self._inline_to_html(c.children) for c in node.header.cells]
+            cells_text.append(list(header_text))
+            for row in node.rows:
+                cells_text.append([self._inline_to_html(c.children) for c in row.cells])
+            # P3-006: Use the actual page width for the current brand (default A4 = 210mm).
+            _page_w_pt = _PAGE_SIZES.get(self._brand_styles.page_size, A4)[0]
+            _margins_pt = (self._brand_styles.left_margin + self._brand_styles.right_margin) * mm
+            available_pt = _page_w_pt - _margins_pt
+            widths = compute_column_widths(cells_text, available_width_pt=available_pt)
+            rl_data = [[RLParagraph(t, body) for t in row] for row in cells_text]
+            tbl = RLTable(rl_data, colWidths=widths)
+            tbl.setStyle(TableStyle([
+                ("BACKGROUND", (0, 0), (-1, 0), HexColor("#f3f4f6")),
+                ("GRID", (0, 0), (-1, -1), 0.5, HexColor("#d1d5db")),
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 4),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+                ("TOPPADDING", (0, 0), (-1, -1), 3),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+            ]))
+            return [tbl]
         if isinstance(node, BlockQuote):
             inner_flowables: list[Flowable] = []
             for child in node.children:
