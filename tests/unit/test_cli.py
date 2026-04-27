@@ -11,7 +11,7 @@ def test_version_subcommand_prints_version():
     runner = CliRunner()
     result = runner.invoke(main, ["version"])
     assert result.exit_code == 0
-    assert "2.0.0a1" in result.output
+    assert "2.0.0" in result.output
 
 
 def test_render_writes_pdf(tmp_path: Path):
