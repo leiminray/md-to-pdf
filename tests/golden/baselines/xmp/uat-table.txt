@@ -1,0 +1,12 @@
+pdf:Producer = 'md-to-pdf 2.0'
+xmp:CreateDate = '<DATE>'
+xmp:CreatorTool = 'md-to-pdf 2.0'
+dc:creator = ['None']
+dc:title = 'UAT Fixture — Pipe table'
+mdpdf:BrandId = ''
+mdpdf:BrandVersion = ''
+mdpdf:InputHash = 'b5f41547e6b11dc83ead4cdc1fab5e1716ea4283dbe989952782d4e77e0518af'
+mdpdf:RenderHost = '<HOST>'
+mdpdf:RenderId = '<UUID>'
+mdpdf:RenderUser = 'ci@example.com'
+mdpdf:WatermarkLevel = 'L1+L2'

@@ -1,0 +1,12 @@
+pdf:Producer = 'md-to-pdf 2.0'
+xmp:CreateDate = '<DATE>'
+xmp:CreatorTool = 'md-to-pdf 2.0'
+dc:creator = ['None']
+dc:title = 'UAT 夹具 — 简体中文'
+mdpdf:BrandId = ''
+mdpdf:BrandVersion = ''
+mdpdf:InputHash = 'ef0b76a994d609fe4b8eb5aaa429bed3953a087640c79f7a9b3bdb5e33937dc1'
+mdpdf:RenderHost = '<HOST>'
+mdpdf:RenderId = '<UUID>'
+mdpdf:RenderUser = 'ci@example.com'
+mdpdf:WatermarkLevel = 'L1+L2'
