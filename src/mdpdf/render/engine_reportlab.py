@@ -30,6 +30,7 @@ from mdpdf.markdown.ast import (
     Heading,
     Inline,
     Link,
+    ListBlock,
     MermaidBlock,
     Paragraph,
     Strong,
@@ -39,6 +40,7 @@ from mdpdf.markdown.ast import Image as ASTImage
 from mdpdf.markdown.ast import Table as ASTTable
 from mdpdf.render.engine_base import RenderEngine
 from mdpdf.render.flowables import CalloutBox, FencedCodeCard, MermaidImage
+from mdpdf.render.lists import ast_list_to_flowable
 from mdpdf.render.tables import compute_column_widths
 from mdpdf.renderers.base import RenderContext
 from mdpdf.renderers.code_pygments import CodeRenderer
@@ -157,6 +159,8 @@ class ReportLabEngine(RenderEngine):
                 ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
             ]))
             return [tbl]
+        if isinstance(node, ListBlock):
+            return [ast_list_to_flowable(node, body)]
         if isinstance(node, BlockQuote):
             inner_flowables: list[Flowable] = []
             for child in node.children:
