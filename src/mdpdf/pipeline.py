@@ -5,6 +5,8 @@ See spec §2.1.1, §2.1.7.
 from __future__ import annotations
 
 import hashlib
+import os
+import socket
 import time
 import uuid
 from collections.abc import Iterator
@@ -20,13 +22,16 @@ from mdpdf.brand.overrides import apply_overrides
 from mdpdf.brand.registry import BrandRegistry, resolve_brand
 from mdpdf.brand.schema import BrandPack, load_brand_pack
 from mdpdf.brand.styles import build_brand_styles
-from mdpdf.errors import PipelineError, RendererError, TemplateError
+from mdpdf.errors import MdpdfError, PipelineError, RendererError, TemplateError
 from mdpdf.fonts.manager import FontManager
-from mdpdf.markdown.ast import Block, Document, MermaidBlock, Paragraph
+from mdpdf.markdown.ast import Block, Document, Heading, MermaidBlock, Paragraph
 from mdpdf.markdown.ast import Image as ASTImage
 from mdpdf.markdown.parser import parse_markdown
 from mdpdf.markdown.transformers import run_transformers
-from mdpdf.markdown.transformers.collect_outline import collect_outline
+from mdpdf.markdown.transformers.collect_outline import (
+    _inline_to_plain,
+    collect_outline,
+)
 from mdpdf.markdown.transformers.filter_metadata_blocks import filter_metadata_blocks
 from mdpdf.markdown.transformers.normalize_merged_atx_headings import (
     normalize_merged_atx_headings,
@@ -38,6 +43,12 @@ from mdpdf.render.engine_reportlab import ReportLabEngine
 from mdpdf.renderers.base import RenderContext
 from mdpdf.renderers.image import ImageRenderer
 from mdpdf.renderers.mermaid_chain import select_mermaid_renderer
+from mdpdf.security.audit import AuditLogger
+from mdpdf.security.deterministic import (
+    derive_render_id,
+    frozen_create_date,
+    serialise_options,
+)
 
 _log = structlog.get_logger("mdpdf.pipeline")
 
@@ -47,14 +58,10 @@ _TEMPLATE_ALLOWLIST = frozenset({"generic"})
 
 @dataclass(frozen=True)
 class WatermarkOptions:
-    """Watermark configuration (Plan 1: stored only; applied in Plan 4).
-
-    `level` is a literal string per spec §2.4 — values: 'L0', 'L1', 'L1+L2'.
-    L3-L5 land in v2.3.
-    """
+    """Watermark configuration. `level` per spec §2.4 — 'L0' / 'L1' / 'L2' / 'L1+L2'."""
 
     user: str | None = None
-    level: Literal["L0", "L1", "L1+L2"] = "L1+L2"
+    level: Literal["L0", "L1", "L2", "L1+L2"] = "L1+L2"
     custom_text: str | None = None
 
 
@@ -112,8 +119,13 @@ class Pipeline:
     asset resolution, watermark/audit post-processing land in plans 2–4.
     """
 
-    def __init__(self, engine: RenderEngine) -> None:
+    def __init__(
+        self,
+        engine: RenderEngine,
+        audit: AuditLogger | None = None,
+    ) -> None:
         self._engine = engine
+        self._audit = audit if audit is not None else AuditLogger()
 
     @classmethod
     def from_env(cls) -> Pipeline:
@@ -121,8 +133,109 @@ class Pipeline:
         return cls(engine=ReportLabEngine())
 
     def render(self, request: RenderRequest) -> RenderResult:
-        render_id = str(uuid.uuid4())
         t0 = time.perf_counter()
+
+        # Read source first so we have its bytes for hashing and (in
+        # deterministic mode) the input to derive_render_id.
+        if request.source_type == "path":
+            source_text = Path(request.source).read_text(encoding="utf-8")
+        else:
+            assert isinstance(request.source, str)  # noqa: S101
+            source_text = request.source
+        source_bytes = source_text.encode("utf-8")
+        input_hash = hashlib.sha256(source_bytes).hexdigest()
+
+        # SOURCE_DATE_EPOCH is the cross-tool standard for deterministic builds;
+        # parse it once and thread through both render-id derivation and date
+        # freeze in the post-process pipeline.
+        source_date_epoch: int | None = None
+        sde_raw = os.environ.get("SOURCE_DATE_EPOCH")
+        if sde_raw:
+            try:
+                source_date_epoch = int(sde_raw)
+            except ValueError:
+                source_date_epoch = None
+
+        deterministic_mode = request.deterministic or source_date_epoch is not None
+        render_date = frozen_create_date(source_date_epoch)
+
+        if deterministic_mode:
+            options_serialised = serialise_options(
+                template=request.template,
+                locale=request.locale,
+                watermark_level=request.watermark.level,
+                watermark_custom_text=request.watermark.custom_text,
+                brand_overrides=dict(request.brand_overrides) if request.brand_overrides else None,
+            )
+            render_id = derive_render_id(
+                input_bytes=source_bytes,
+                brand_id=request.brand or "",
+                brand_version="",  # filled in after brand resolution
+                options_serialised=options_serialised,
+                watermark_user=request.watermark.user,
+            )
+        else:
+            render_id = str(uuid.uuid4())
+
+        host_hash = hashlib.sha256(socket.gethostname().encode("utf-8")).hexdigest()[:16]
+
+        audit_active = request.audit_enabled and self._audit is not None
+        audit_input_path = (
+            Path(request.source) if request.source_type == "path" else None
+        )
+
+        try:
+            return self._render_inner(
+                request,
+                render_id=render_id,
+                source_text=source_text,
+                source_bytes=source_bytes,
+                input_hash=input_hash,
+                host_hash=host_hash,
+                render_date=render_date,
+                deterministic_mode=deterministic_mode,
+                source_date_epoch=source_date_epoch,
+                audit_active=audit_active,
+                audit_input_path=audit_input_path,
+                t0=t0,
+            )
+        except MdpdfError as exc:
+            duration_ms = int((time.perf_counter() - t0) * 1000)
+            if audit_active:
+                self._audit.log_error(
+                    render_id=render_id,
+                    duration_ms=duration_ms,
+                    code=exc.code,
+                    message=exc.user_message,
+                )
+            raise
+        except Exception as exc:
+            duration_ms = int((time.perf_counter() - t0) * 1000)
+            if audit_active:
+                self._audit.log_error(
+                    render_id=render_id,
+                    duration_ms=duration_ms,
+                    code="UNEXPECTED",
+                    message=str(exc),
+                )
+            raise
+
+    def _render_inner(
+        self,
+        request: RenderRequest,
+        *,
+        render_id: str,
+        source_text: str,
+        source_bytes: bytes,
+        input_hash: str,
+        host_hash: str,
+        render_date: str,
+        deterministic_mode: bool,
+        source_date_epoch: int | None,
+        audit_active: bool,
+        audit_input_path: Path | None,
+        t0: float,
+    ) -> RenderResult:
 
         # Validate phase: template allowlist
         if request.template not in _TEMPLATE_ALLOWLIST:
@@ -159,15 +272,27 @@ class Pipeline:
                 brand_fonts_dir = None
         fm = FontManager(bundled_dir=bundled_fonts, brand_fonts_dir=brand_fonts_dir)
 
-        # Read the source once
-        if request.source_type == "path":
-            source_text = Path(request.source).read_text(encoding="utf-8")
-        else:
-            assert isinstance(request.source, str)  # noqa: S101 — type narrow for mypy
-            source_text = request.source
-
-        # Replace Plan 1 byte-level CJK guard with font-availability check
+        # source_text was already read in render() and passed in; just register
+        # the fonts for it.
         fm.register_for_text(source_text)
+
+        # Audit: emit render.start once we know the brand id (and after font
+        # registration so a CJK-font failure raises before the audit start).
+        if audit_active:
+            self._audit.log_start(
+                render_id=render_id,
+                user=request.watermark.user,
+                host_hash=host_hash,
+                brand_id=brand_pack.id if brand_pack else "",
+                brand_version=str(brand_pack.version) if brand_pack else "",
+                template=request.template,
+                input_path=audit_input_path,
+                input_size=len(source_bytes),
+                input_sha256=input_hash,
+                watermark_level=request.watermark.level,
+                deterministic=deterministic_mode,
+                locale=request.locale,
+            )
 
         _log.info(
             "render.start",
@@ -213,7 +338,43 @@ class Pipeline:
             ) from exc
         render_ms = int((time.perf_counter() - t_render_start) * 1000)
 
-        # Output phase metrics
+        # Post-process phase (Plan 4): footer + issuer card + watermarks +
+        # deterministic date freeze. Runs in-place on the output PDF.
+        from mdpdf.post_process.pipeline import (
+            PostProcessOptions,
+            PostProcessPipeline,
+        )
+
+        document_title = _document_title(document)
+        t_pp_start = time.perf_counter()
+        pp_opts = PostProcessOptions(
+            brand_pack=brand_pack,
+            watermark=request.watermark,
+            render_id=render_id,
+            render_user=request.watermark.user,
+            render_date=render_date,
+            render_host_hash=host_hash,
+            input_hash=input_hash,
+            document_title=document_title,
+            locale=request.locale,
+            deterministic=deterministic_mode,
+            source_date_epoch=source_date_epoch,
+        )
+        try:
+            PostProcessPipeline().run(request.output, pp_opts)
+        except MdpdfError:
+            raise
+        except Exception as exc:
+            raise PipelineError(
+                code="POST_PROCESS_FAILED",
+                user_message="post-process pipeline failed",
+                technical_details=repr(exc),
+                render_id=render_id,
+            ) from exc
+        post_process_ms = int((time.perf_counter() - t_pp_start) * 1000)
+
+        # Output phase metrics — read AFTER post-process so the sha256 covers
+        # the final on-disk file (including watermarks + footer).
         size_bytes = request.output.stat().st_size
         sha = hashlib.sha256(request.output.read_bytes()).hexdigest()
         total_ms = int((time.perf_counter() - t0) * 1000)
@@ -229,10 +390,22 @@ class Pipeline:
                 parse_ms=parse_ms,
                 asset_resolve_ms=asset_resolve_ms,
                 render_ms=render_ms,
-                post_process_ms=0,
+                post_process_ms=post_process_ms,
                 total_ms=total_ms,
             ),
         )
+
+        if audit_active:
+            self._audit.log_complete(
+                render_id=render_id,
+                duration_ms=total_ms,
+                output_path=request.output,
+                output_size=size_bytes,
+                output_sha256=sha,
+                pages=pages,
+                renderers_used={},
+                warnings=result.warnings,
+            )
 
         _log.info(
             "render.complete",
@@ -331,3 +504,11 @@ class Pipeline:
                 for child in node.children:
                     if isinstance(child, ASTImage):
                         yield node, child
+
+
+def _document_title(document: Document) -> str:
+    """Return the document's H1 title as plain text, or '' if absent."""
+    for node in document.children:
+        if isinstance(node, Heading) and node.level == 1:
+            return _inline_to_plain(node.children) or ""
+    return ""

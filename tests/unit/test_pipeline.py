@@ -1,5 +1,6 @@
 """Tests for RenderRequest, RenderResult, RenderMetrics + Pipeline (spec §2.1)."""
 import hashlib
+import json
 import uuid
 from pathlib import Path
 
@@ -326,3 +327,164 @@ def test_pipeline_override_to_forbidden_field_raises(tmp_path: Path):
         assert e.code == "BRAND_OVERRIDE_DENIED"
     else:
         raise AssertionError("expected BrandError")
+
+
+# ── Plan 4: post-process + audit + deterministic-mode wiring ────────────────
+
+
+class TestPipelinePostProcess:
+    """Task 11 — Pipeline runs PostProcessPipeline after engine + populates metric."""
+
+    def test_pipeline_post_process_ms_populated(self, tmp_path: Path) -> None:
+        src = tmp_path / "in.md"
+        src.write_text("# Title\n\nbody.")
+        out = tmp_path / "out.pdf"
+        pipeline = Pipeline.from_env()
+        result = pipeline.render(
+            RenderRequest(source=src, source_type="path", output=out)
+        )
+        assert isinstance(result.metrics.post_process_ms, int)
+        assert result.metrics.post_process_ms >= 0
+
+
+class TestPipelineAudit:
+    """Task 12 — Pipeline emits render.start / render.complete / render.error events."""
+
+    def test_audit_events_written_on_success(self, tmp_path: Path) -> None:
+        from mdpdf.render.engine_reportlab import ReportLabEngine
+        from mdpdf.security.audit import AuditLogger
+
+        src = tmp_path / "in.md"
+        src.write_text("# Hi\n\nbody.")
+        out = tmp_path / "out.pdf"
+        audit_path = tmp_path / "audit.jsonl"
+
+        pipeline = Pipeline(
+            engine=ReportLabEngine(), audit=AuditLogger(path=audit_path)
+        )
+        pipeline.render(
+            RenderRequest(
+                source=src, source_type="path", output=out, audit_enabled=True
+            )
+        )
+
+        lines = [
+            json.loads(line)
+            for line in audit_path.read_text().splitlines()
+            if line.strip()
+        ]
+        events = [line["event"] for line in lines]
+        assert "render.start" in events
+        assert "render.complete" in events
+        assert "render.error" not in events
+
+    def test_no_audit_when_disabled(self, tmp_path: Path) -> None:
+        from mdpdf.render.engine_reportlab import ReportLabEngine
+        from mdpdf.security.audit import AuditLogger
+
+        src = tmp_path / "in.md"
+        src.write_text("# Hi\n")
+        out = tmp_path / "out.pdf"
+        audit_path = tmp_path / "audit.jsonl"
+
+        pipeline = Pipeline(
+            engine=ReportLabEngine(), audit=AuditLogger(path=audit_path)
+        )
+        pipeline.render(
+            RenderRequest(
+                source=src, source_type="path", output=out, audit_enabled=False
+            )
+        )
+        assert not audit_path.exists()
+
+    def test_render_error_emits_error_event(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from mdpdf.errors import PipelineError as _PipelineError
+        from mdpdf.render.engine_reportlab import ReportLabEngine
+        from mdpdf.security.audit import AuditLogger
+
+        src = tmp_path / "in.md"
+        src.write_text("# Hi\n")
+        out = tmp_path / "out.pdf"
+        audit_path = tmp_path / "audit.jsonl"
+
+        engine = ReportLabEngine()
+
+        def _boom(*args: object, **kwargs: object) -> int:
+            raise RuntimeError("boom")
+
+        monkeypatch.setattr(engine, "render", _boom)
+
+        pipeline = Pipeline(engine=engine, audit=AuditLogger(path=audit_path))
+        with pytest.raises(_PipelineError):
+            pipeline.render(
+                RenderRequest(
+                    source=src, source_type="path", output=out, audit_enabled=True
+                )
+            )
+
+        lines = [
+            json.loads(line)
+            for line in audit_path.read_text().splitlines()
+            if line.strip()
+        ]
+        events = [line["event"] for line in lines]
+        assert "render.error" in events
+
+
+class TestPipelineDeterminism:
+    """Task 13 — deterministic mode derives a stable render-id from the inputs."""
+
+    def test_deterministic_render_id_is_stable(self, tmp_path: Path) -> None:
+        src = tmp_path / "in.md"
+        src.write_text("# Hi\n\nbody.")
+
+        out1 = tmp_path / "a.pdf"
+        out2 = tmp_path / "b.pdf"
+        pipeline = Pipeline.from_env()
+        r1 = pipeline.render(
+            RenderRequest(
+                source=src, source_type="path", output=out1, deterministic=True
+            )
+        )
+        r2 = pipeline.render(
+            RenderRequest(
+                source=src, source_type="path", output=out2, deterministic=True
+            )
+        )
+        assert r1.render_id == r2.render_id
+
+    def test_non_deterministic_render_id_is_uuid4(self, tmp_path: Path) -> None:
+        import re
+
+        src = tmp_path / "in.md"
+        src.write_text("# Hi\n")
+        out = tmp_path / "out.pdf"
+        pipeline = Pipeline.from_env()
+        result = pipeline.render(
+            RenderRequest(
+                source=src, source_type="path", output=out, deterministic=False
+            )
+        )
+        assert re.match(
+            r"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+            result.render_id,
+        )
+
+    def test_source_date_epoch_triggers_deterministic_id(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("SOURCE_DATE_EPOCH", "1700000000")
+        src = tmp_path / "in.md"
+        src.write_text("# Hi\n")
+        out1 = tmp_path / "a.pdf"
+        out2 = tmp_path / "b.pdf"
+        pipeline = Pipeline.from_env()
+        r1 = pipeline.render(
+            RenderRequest(source=src, source_type="path", output=out1)
+        )
+        r2 = pipeline.render(
+            RenderRequest(source=src, source_type="path", output=out2)
+        )
+        assert r1.render_id == r2.render_id
