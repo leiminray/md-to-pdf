@@ -1,5 +1,7 @@
-# Internal planning docs (specs/, plans/) live under docs/superpowers/ for
-# git-history convenience but are NOT part of the published site.
+# MkDocs site configuration for md-to-pdf user documentation.
+# Site source: docs/ → published to https://leiminray.github.io/md-to-pdf/
+# Internal planning docs (specs/, plans/) under docs/superpowers/ are excluded
+# from the published site.
 exclude_docs: |
   superpowers/
 
