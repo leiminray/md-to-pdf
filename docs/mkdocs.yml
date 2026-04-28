@@ -1,0 +1,16 @@
+site_name: md-to-pdf v2.0
+theme:
+  name: material
+  features:
+    - navigation.instant
+    - search.suggest
+plugins:
+  - search
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Quickstart: quickstart.md
+  - CLI Reference: cli-reference.md
+  - Python API: python-api.md
+  - Brand Pack Authoring: brand-pack-authoring.md
+  - Errors: errors/index.md
