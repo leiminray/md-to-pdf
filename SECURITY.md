@@ -1,3 +1,4 @@
+<!-- Vulnerability disclosure policy and security best practices for md-to-pdf users. -->
 # Security Policy
 
 ## Reporting a Vulnerability
