@@ -85,8 +85,15 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     services:
+      # Pinned to a digest, NOT :latest — the deterministic baselines depend
+      # on Kroki's mermaid output being byte-stable across runs. To bump:
+      #   1. pick the new tag from https://hub.docker.com/r/yuzutech/kroki/tags
+      #   2. record the immutable digest below
+      #   3. regenerate affected baselines: pytest tests/golden/ --update-golden
+      #   4. include the baseline diff in the same PR as the bump
+      # Current pin: yuzutech/kroki:0.30.1 (2026-03-02)
       kroki:
-        image: yuzutech/kroki:latest
+        image: yuzutech/kroki@sha256:4cfb9d48a1d9e18c346d505fd85c9ad16121d1691602b0e580db904b00c04320
         ports:
           - 8000:8000
         options: >-

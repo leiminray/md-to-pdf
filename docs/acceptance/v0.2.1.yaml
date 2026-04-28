@@ -91,6 +91,14 @@ example_brands:
   directory: examples/brands
   min_count: 2
 
+# §7.3 — pinned Kroki container SHA. Recorded here so any drift between
+# ci.yml and the documented contract is visible in audit history. Bumping
+# this value requires regenerating affected golden baselines in the same PR.
+kroki_pin:
+  tag: "0.30.1"
+  digest: "sha256:4cfb9d48a1d9e18c346d505fd85c9ad16121d1691602b0e580db904b00c04320"
+  pinned_in: .github/workflows/ci.yml
+
 # Pytest invocation that the audit script must run successfully.
 # --strict-golden converts missing-baseline skips into hard failures.
 pytest_strict_command:
