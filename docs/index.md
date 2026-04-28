@@ -1,3 +1,4 @@
+<!-- Documentation site landing page — links to installation, CLI reference, brand authoring, etc. -->
 # md-to-pdf v0.2.1
 
 Enterprise-grade Markdown → PDF conversion with brand kits, watermarks, and CJK support.
