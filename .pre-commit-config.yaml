@@ -1,0 +1,49 @@
+# Local quality gates. Install with:  pre-commit install --hook-type pre-push
+#
+# Pre-push runs the acceptance audit so a developer sees red BEFORE pushing —
+# avoids burning CI cycles on obviously-broken PRs and tightens the feedback
+# loop. The hook runs the audit with --skip-pytest for speed (CI runs the
+# full strict-golden suite).
+#
+# Pre-commit hooks are kept light so commit speed stays reasonable; heavy
+# checks live in the pre-push stage and CI.
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+        args: ["--maxkb=12000"]   # bundled NotoSansSC TTFs are ~10MB
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.4.10
+    hooks:
+      - id: ruff
+        args: ["--fix"]
+      - id: ruff-format
+
+  # Pre-push: acceptance audit. This is the local mirror of the CI gate —
+  # if this is red, your PR will be red.
+  - repo: local
+    hooks:
+      - id: acceptance-audit
+        name: Acceptance audit (skip-pytest)
+        entry: python scripts/check_acceptance.py --skip-pytest
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+        always_run: true
+
+      # When the spec is touched, run the full audit including spec-drift
+      # check explicitly — catches the "spec edited but yaml not synced" case.
+      - id: acceptance-audit-spec-drift
+        name: Acceptance audit (on spec change)
+        entry: python scripts/check_acceptance.py --skip-pytest
+        language: system
+        pass_filenames: false
+        files: ^(docs/superpowers/specs/.*\.md|docs/acceptance/.*\.yaml)$
+        stages: [pre-commit]
+        always_run: false

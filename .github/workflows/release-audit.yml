@@ -1,0 +1,65 @@
+# Release-time second-pass audit.
+#
+# Branch protection on `main` already gates merges via acceptance.yml, but a
+# release tag may still be pushed against a branch that bypassed protection
+# (admin override, fast-forward push by a maintainer with elevated rights,
+# or an out-of-tree branch tagged manually).
+#
+# This workflow runs the full audit at the exact tagged commit and fails the
+# release if anything is amiss. It is the fail-safe for branch protection
+# (which is single-point-of-failure on GitHub-only enforcement).
+
+name: Release audit
+
+on:
+  push:
+    tags: ["v*", "[0-9]*.[0-9]*.[0-9]*"]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Git ref to audit (defaults to current branch)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Release audit (full)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # If invoked via workflow_dispatch with a ref input, audit that ref.
+          ref: ${{ github.event.inputs.ref || github.ref }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install libcairo
+        run: sudo apt-get update -y && sudo apt-get install -y libcairo2
+
+      - name: Install package + dev dependencies
+        run: pip install -e ".[dev]"
+
+      # Full strict-golden run, no shortcuts.
+      - name: Golden tests (strict)
+        env:
+          PYTHONUTF8: "1"
+        run: python -m pytest tests/golden/ --strict-golden -v
+
+      # Full audit including the pytest re-run via spec.pytest_strict_command.
+      # This is intentionally redundant with the previous step — at release
+      # time, defence-in-depth beats minutes saved.
+      - name: Full acceptance audit
+        run: python scripts/check_acceptance.py
+
+      # Self-tests for the audit tool itself.
+      - name: Audit script unit tests
+        env:
+          PYTHONUTF8: "1"
+        run: python -m pytest tests/unit/test_check_acceptance.py -v
