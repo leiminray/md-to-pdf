@@ -18,16 +18,13 @@ import httpx
 
 from mdpdf.errors import FontError
 
-# Replace PLACEHOLDER_SHA256 with the real digest before tagging v2.0.0.
-# Until the placeholder is replaced, install_font() will always fail with
-# FONT_SHA256_MISMATCH — verify download flow with `mdpdf doctor` instead.
 _KNOWN_FONTS: dict[str, dict[str, str]] = {
     "noto-sans-sc": {
         "url": (
             "https://github.com/googlefonts/noto-cjk/raw/main/"
             "Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Regular.otf"
         ),
-        "sha256": "PLACEHOLDER_SHA256_REPLACE_BEFORE_RELEASE",
+        "sha256": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b",
         "filename": "NotoSansSC-Regular.otf",
     },
 }

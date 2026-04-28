@@ -40,6 +40,7 @@ dependencies = [
 Homepage = "https://github.com/leiminray/md-to-pdf"
 Repository = "https://github.com/leiminray/md-to-pdf"
 Issues = "https://github.com/leiminray/md-to-pdf/issues"
+Changelog = "https://github.com/leiminray/md-to-pdf/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 dev = [
@@ -47,11 +48,16 @@ dev = [
   "pdfplumber>=0.11",
   "pypdf>=4.0",
   "pytest>=8.0",
+  "pytest-asyncio>=0.23",
   "pytest-cov>=4.1",
   "ruff>=0.3",
   "types-pygments",
   "types-pyyaml",
   "types-reportlab",
+]
+docs = [
+  "mkdocs>=1.5",
+  "mkdocs-material>=9.5",
 ]
 mermaid-pure = ["mermaid>=0.7"]
 
