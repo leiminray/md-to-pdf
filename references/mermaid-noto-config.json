@@ -1,7 +1,0 @@
-{
-  "theme": "base",
-  "themeVariables": {
-    "fontFamily": "'IDS Noto Sans SC', 'Noto Sans SC', sans-serif"
-  },
-  "themeCSS": ".nodeLabel,.nodeLabel text,.edgeLabel,.edgeLabel span,.messageText,.actor,.actor text,svg text,.flowchartTitleText,.classTitleText,.stateLabel,foreignObject,foreignObject p{font-family:'IDS Noto Sans SC','Noto Sans SC',sans-serif!important}"
-}
