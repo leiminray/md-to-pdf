@@ -1,22 +1,33 @@
-# UAT fixtures (ReportLab)
+# Fixtures
 
-Small Markdown files for regression runs of [`scripts/md_to_pdf.py`](../scripts/md_to_pdf.py). **Fixtures in this folder are English by default**; use `uat-zh.md` for Simplified Chinese body and diagram labels.
+Sample Markdown documents and assets used by md-to-pdf tests.
 
-- `uat-en.md` — English body
-- `uat-zh.md` — Simplified Chinese (uses `../fonts/NotoSansSC-*.ttf`)
-- `uat-table.md` — pipe table
-- `mermaid-noto-presets.md` — Mermaid flowchart / sequence / state (English; mmdc + Noto smoke)
-- `fenced-mermaid-smoke.md` — Python/text fences, noisy Mermaid tag, empty Mermaid (`pytest` fixture)
-- `uat-cjk.md` — CJK strict regression (mixed wrap, dates aligned with `uat-zh.md`, merged `#`/`##` line; `pytest`: `tests/test_md_to_pdf_cjk.py`)
+## Layout
 
-**PDF output path:** If you **omit** `-o`, the CLI writes **`out/<same-stem-as-input>.pdf`** under this folder (the script ensures `fixtures/out/` exists). You can still override with `-o` (relative paths are resolved from your **current working directory**).
-
-```bash
-# From repo root — writes fixtures/out/uat-en.pdf
-.../md_to_pdf.py .cursor/skills/md-to-pdf/fixtures/uat-en.md
-
-# Explicit path (relative to cwd)
-.../md_to_pdf.py .cursor/skills/md-to-pdf/fixtures/uat-en.md -o .cursor/skills/md-to-pdf/fixtures/out/uat-en.pdf
+```
+fixtures/
+├── branch_ops_ai_robot_product_brief.md  # Comprehensive UAT fixture (11 scenarios)
+├── fenced-mermaid-smoke.md               # Smoke test for Mermaid rendering
+├── mermaid-noto-presets.md               # Mermaid + CJK font presets
+├── images/                               # Image assets referenced by fixtures
+│   ├── architecture.png
+│   ├── architecture-large.png
+│   ├── icon-256.png
+│   └── system-flow.svg
+└── out/                                  # Local render outputs (gitignored)
 ```
 
-Root-level `*.pdf` next to a fixture `.md` should not appear when using the default output; such files are **gitignored** (see [`.gitignore`](.gitignore)). Canonical PDFs for UAT live under **`out/`** per [`references/validation-scenarios.md`](../references/validation-scenarios.md).
+## Purpose
+
+Fixtures exercise end-to-end behavior of the Markdown→PDF pipeline:
+- **branch_ops_ai_robot_product_brief.md** — comprehensive 11-scenario UAT covering tables, code, Mermaid, images, watermarks, CJK
+- **fenced-mermaid-smoke.md** — minimal Mermaid block to verify the renderer chain
+- **mermaid-noto-presets.md** — Mermaid + Noto Sans SC font interaction tests
+
+## Adding a fixture
+
+When adding a new fixture, also add a corresponding test in `tests/integration/` or `tests/golden/` that asserts the expected rendered behavior. Keep fixture sizes reasonable so test runs stay fast.
+
+## Image assets
+
+Referenced PNG/SVG assets live under `images/`. SVG assets are converted to PNG via cairosvg during rendering — install `libcairo` if you need to test SVG locally.
