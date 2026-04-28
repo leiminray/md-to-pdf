@@ -15,7 +15,6 @@ import difflib
 import hashlib
 import io
 import json
-import os
 import subprocess
 from collections.abc import Iterator
 from pathlib import Path
@@ -73,7 +72,7 @@ def golden_root() -> Path:
 
 
 @pytest.fixture
-def rendered_pdf(tmp_path: Path) -> "RenderedPdfFactory":
+def rendered_pdf(tmp_path: Path) -> RenderedPdfFactory:
     """Return a factory that renders a fixture markdown file to a temp PDF.
 
     Usage::
@@ -157,9 +156,8 @@ def extract_xmp_json(pdf_path: Path) -> str:
     comparison in non-deterministic mode (they change per-run). The full
     dict is returned; callers decide which keys to mask.
     """
-    with pikepdf.open(pdf_path) as pdf:
-        with pdf.open_metadata() as meta:
-            raw: dict[str, Any] = dict(meta)
+    with pikepdf.open(pdf_path) as pdf, pdf.open_metadata() as meta:
+        raw: dict[str, Any] = dict(meta)
     return json.dumps(raw, indent=2, sort_keys=True, ensure_ascii=False)
 
 

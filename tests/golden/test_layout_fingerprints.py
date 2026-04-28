@@ -10,7 +10,6 @@ widths, adjusted heading spacing, or altered table cell placement.
 """
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import pytest
