@@ -1,3 +1,4 @@
+<!-- Release notes and version history for md-to-pdf. -->
 # Changelog
 
 All notable changes to md-to-pdf are documented in this file.
