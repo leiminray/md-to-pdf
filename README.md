@@ -1,3 +1,4 @@
+<!-- Project overview: features, installation, CLI/API usage, and architecture. -->
 # md-to-pdf v0.2.1 (Beta)
 
 A modern Markdown → PDF converter with brand-pack support, watermarking, and enterprise-grade features.
