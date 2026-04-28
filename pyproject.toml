@@ -1,3 +1,7 @@
+# md-to-pdf — Python package metadata, dependencies, and tooling configuration.
+# Defines the build system, runtime/dev/docs dependencies, console script entry,
+# and lint/type-check/test settings.
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
