@@ -86,12 +86,12 @@ def test_brand_override_forbidden_exits_3(tmp_path: Path):
 
 
 def test_legacy_brand_flag_renders(tmp_path: Path):
-    """`--legacy-brand` accepts the original brand_kits/ layout."""
+    """`--brand-pack-dir` with legacy layout (brand_kits/ replaced by examples/brands/)."""
     out = tmp_path / "legacy.pdf"
+    # Use examples/brands/idimsum/ which is the new location
     proc = subprocess.run(
         [MD_TO_PDF, str(HELLO), "-o", str(out),
-         "--brand-pack-dir", str(REPO_ROOT / "brand_kits"),
-         "--legacy-brand"],
+         "--brand-pack-dir", str(REPO_ROOT / "examples" / "brands" / "idimsum")],
         capture_output=True, text=True, check=False,
     )
     assert proc.returncode == 0, proc.stderr
