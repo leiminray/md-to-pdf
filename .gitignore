@@ -32,6 +32,7 @@ Thumbs.db
 .mdpdf-puppeteer-cache/
 fixtures/out/
 mdpdf-tmp-*/
+site/
 
 # Plan 1+ build artifacts
 src/*.egg-info/
