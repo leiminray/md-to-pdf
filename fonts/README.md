@@ -1,30 +1,29 @@
-# Noto Sans SC (embeddable TTF for ReportLab)
+# Fonts
 
-These files are **Noto Sans SC** (Google Fonts / OFL), suitable for Simplified Chinese body text in ReportLab.
+Bundled font files used by md-to-pdf for PDF rendering.
 
-| File | Weight | Source |
-|------|--------|--------|
-| `NotoSansSC-Regular.ttf` | 400 | [Google Fonts](https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700) → `fonts.gstatic.com` TTF |
-| `NotoSansSC-Bold.ttf` | 700 | same |
+## Contents
 
-**License:** SIL Open Font License 1.1 (OFL).
+| File | Weight | License |
+|------|--------|---------|
+| `NotoSansSC-Regular.ttf` | 400 | SIL Open Font License 1.1 |
+| `NotoSansSC-Bold.ttf` | 700 | SIL Open Font License 1.1 |
 
-**Fenced code (Noto Sans Mono):** not stored under this folder. `register_mono_font()` **first** looks for **NotoSansMono-Regular.ttf** in OS font paths (Linux `…/noto/`, Homebrew, macOS `~/Library/Fonts` / `/Library/Fonts/`, `C:\Windows\Fonts\`, etc.), then Menlo/Consolas/DejaVu, else **Courier**. To install the OFL TTF, use your OS or [Google Fonts](https://fonts.google.com/noto/specimen/Noto+Sans+Mono) / package managers (`fonts-noto` on some Linux distros).
+**Noto Sans SC** is used for Simplified Chinese body text in ReportLab. The font is required for CJK rendering — without it, md-to-pdf will fail loudly when CJK characters are detected in input markdown.
 
-**Re-download** (if `NotoSansSC-*.ttf` missing):
+## Why bundle these?
 
-```bash
-cd .cursor/skills/md-to-pdf/fonts
-curl -fsSL -o NotoSansSC-Regular.ttf "https://fonts.gstatic.com/s/notosanssc/v40/k3kCo84MPvpLmixcA63oeAL7Iqp5IZJF9bmaG9_FnYw.ttf"
-curl -fsSL -o NotoSansSC-Bold.ttf "https://fonts.gstatic.com/s/notosanssc/v40/k3kCo84MPvpLmixcA63oeAL7Iqp5IZJF9bmaGzjCnYw.ttf"
-```
+CJK rendering quality is critical for enterprise documents. Bundling Noto Sans SC ensures:
+- Out-of-the-box CJK support (no extra installation steps)
+- Consistent rendering across platforms (Linux/macOS/Windows)
+- Predictable output for deterministic mode (same fonts → same bytes)
 
-If Google changes paths, get current TTF URLs from `https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700` (with a browser User-Agent).
+## Custom fonts
 
-**Repository:** 将 `NotoSansSC-Regular.ttf` 与 `NotoSansSC-Bold.ttf` **纳入 Git**（本仓库不提交 zip 包），以便克隆即可渲染（正文 + 页眉/页脚 + Mermaid 共用）。
+For brand-specific typography, use a brand pack with a `fonts/` directory containing your custom TTFs. The brand registry will load them in preference to bundled fonts when matching.
 
-**Offline recovery (no zip in repo):** 误删 TTF 时用 **`git restore`** / 从其他机器复制同文件 / 有网络时按上文 curl 重下。可选：在本地 `fonts/` 自行放入 **`noto_sans_sc_bundled.zip`**（内容与两个 TTF 相同），`register_fonts()` 会在 TTF 缺失时**自动**从该 zip 还原（不提交到版本库也可）。
+## License
 
-**Size:** ~10 MB each. 大文件可配合 Git LFS，按团队规范。
+Both TTF files are distributed under [SIL OFL 1.1](https://scripts.sil.org/OFL), which permits embedding in PDFs without restriction.
 
-**误删/缺失时的提示:** 无可用 CJK 嵌入字体会 **退出并打印** 说明；**不能** 用纯西文内置字体代替，否则中文缺字。
+Source: [Google Fonts — Noto Sans SC](https://fonts.google.com/noto/specimen/Noto+Sans+SC)
