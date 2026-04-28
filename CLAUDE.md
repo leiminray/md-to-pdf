@@ -1,3 +1,4 @@
+<!-- AI agent guidance: project conventions, commands, architectural principles. -->
 # CLAUDE.md — md-to-pdf v0.2.1
 
 Project guidance for AI agents working in this repo. Read this first.
