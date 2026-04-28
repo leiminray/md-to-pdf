@@ -77,8 +77,7 @@ class CodeFence:
 class MermaidBlock:
     """Fenced code block with `mermaid` (or `mmd`) language tag.
 
-    Plan 1 leaves these as MermaidBlock instances; Plan 3 wires the
-    Mermaid renderer chain to convert them to PNG flowables.
+    Stored as-is in the AST; the Mermaid renderer chain converts to PNG.
     """
 
     source: str
@@ -132,9 +131,8 @@ class Html:
 class FrontMatter:
     """YAML front-matter at the start of a document.
 
-    Stored as raw text (not parsed). Plan 2's `strip_yaml_frontmatter`
-    transformer removes this from the document body but the brand/template
-    layers (Plan 2+) may consume the raw YAML separately.
+    Stored as raw text (not parsed). The `strip_yaml_frontmatter` transformer
+    removes this from the document body and parses it into Document.metadata.
     """
 
     raw: str

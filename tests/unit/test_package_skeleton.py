@@ -1,4 +1,4 @@
-"""Verify the v2.0 package layout exists and exports __version__."""
+"""Verify the package layout exists and exports __version__."""
 import importlib
 
 
@@ -9,7 +9,7 @@ def test_package_imports():
 
 def test_package_version_matches_pyproject():
     import mdpdf
-    assert mdpdf.__version__ == "2.0.0"
+    assert mdpdf.__version__ == "0.2.1"
 
 
 def test_subpackages_import():

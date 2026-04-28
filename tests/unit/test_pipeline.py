@@ -37,10 +37,9 @@ def test_render_request_is_frozen():
         req.brand = "acme"  # type: ignore[misc]
 
 
-def test_render_request_template_only_generic_allowed_in_v20():
-    # The dataclass itself accepts any string; allowlist enforcement happens
-    # at validate-phase step 4 (Task 11). This test just confirms
-    # the field exists and defaults to "generic".
+def test_render_request_template_defaults_to_generic():
+    # The dataclass accepts any string; template enforcement happens during validation.
+    # This test confirms the field defaults to "generic".
     req = RenderRequest(source="x", source_type="content", output=Path("/o.pdf"))
     assert req.template == "generic"
 
@@ -182,7 +181,7 @@ def test_pipeline_resolves_brand_by_pack_dir(tmp_path: Path):
 
 
 def test_pipeline_cjk_succeeds_when_font_manager_finds_noto(tmp_path: Path):
-    """Plan 2 replaces Plan 1's byte detector — CJK + bundled Noto = success."""
+    """CJK text rendering with bundled Noto Sans SC font."""
     src = tmp_path / "cjk.md"
     src.write_text("# 你好\n\n世界。\n")
     pipeline = Pipeline.from_env()

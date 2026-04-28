@@ -36,7 +36,7 @@ python3 -m venv .venv
 - **3-layer registry** — Project / User / Built-in brand resolution
 - **Customizable themes** — Colors, fonts, logos, footers
 - **Compliance text** — Watermarks, issuer information, certifications
-- **V1 migration** — `md-to-pdf brand migrate` converts legacy v1.8.9 brand kits
+- **Brand pack migration** — `md-to-pdf brand migrate` converts legacy brand kits
 
 ### ✅ Watermarking & Audit
 - **L1 Visible watermark** — Diagonal overlay text
@@ -173,4 +173,4 @@ Apache-2.0 with explicit patent grant. See [LICENSE](LICENSE).
 
 ---
 
-**Beta Note:** v0.2.1 is a major rewrite from the legacy v1.8.9 monolith. Core features are stable. Additional functionality and optimizations are ongoing. Feedback welcome!
+**Beta Note:** v0.2.1 is a new enterprise Markdown→PDF tool. Core features are stable. Additional functionality and optimizations are ongoing. Feedback welcome!
