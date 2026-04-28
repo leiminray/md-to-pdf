@@ -3,16 +3,16 @@
 Asserts that rendering each UAT fixture in deterministic mode + a fixed
 ``SOURCE_DATE_EPOCH`` + a fixed ``--watermark-user`` produces a PDF whose
 sha256 matches a committed baseline. Together with L1 (AST) and L3
-(text-layer) this completes the v2.0 self-consistency parity gate.
+(text-layer) this completes the self-consistency check.
 
 Diff here is one of:
 - a real renderer / determinism regression (the bit-identical contract
-  from Plan 4 broke for this fixture), OR
+  from broke for this fixture), OR
 - an intentional change (font metrics, layout tweak, brand pack edit) —
   regenerate with ``pytest tests/golden/ --update-golden``.
 
-The baselines are the canonical fingerprint for the v1.8.9 → v2.0
-parity gate (CLAUDE.md "Never strip v1.8.9 until v2.0 passes the
+The baselines are the canonical fingerprint for the current
+parity gate (CLAUDE.md "Never strip  until v0.2.1 passes the
 v1-parity golden suite"). Once these baselines are committed and CI
 shows them green for every uat-*.md fixture, Phase 7 (deletion of
 scripts/md_to_pdf.py + brand_kits/ + the legacy test files) can land.
@@ -86,7 +86,7 @@ def test_deterministic_sha256(
                 source_type="path",
                 output=out,
                 # `auto` picks Kroki on the Golden CI job; the `pure` renderer
-                # is rejected in deterministic mode (Plan 4 P4-015), so any
+                # is rejected in deterministic mode (), so any
                 # fixture with a Mermaid block needs a deterministic-safe
                 # renderer at hand. Test skips when none is available.
                 mermaid_renderer="auto",

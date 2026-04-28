@@ -1,4 +1,4 @@
-"""Renderer ABC (spec §2.1.4).
+"""Renderer ABC.
 
 A `Renderer[SourceT, OutputT]` consumes a source value (a CodeFence's text,
 a MermaidBlock's source, an Image's path) plus a `RenderContext` (cache,

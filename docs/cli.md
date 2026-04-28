@@ -20,7 +20,7 @@ md-to-pdf fonts install <NAME>       # download + install a known font
 | Flag | Purpose |
 |------|---------|
 | `-o`, `--output` | Output PDF path (required) |
-| `--template` | Template id (v2.0 supports only `generic`) |
+| `--template` | Template id (supports only `generic`) |
 | `--locale` | Output locale: `en` (default) or `zh-CN` |
 | `--brand` | Brand id (resolved via 3-layer registry) |
 | `--brand-pack-dir` | Explicit brand pack directory |

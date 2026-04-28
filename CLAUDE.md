@@ -107,7 +107,7 @@ python3 -m venv .venv
 
 **v0.3–v1.0:** Multiple rendering engines, template packs, advanced watermarking, MCP server, GitHub Actions
 
-**Future (v2.0+):** Policy-based brand locking, PDF/A-2b, encryption, digital signatures
+**Future (v0.2.1+):** Policy-based brand locking, PDF/A-2b, encryption, digital signatures
 
 See [roadmap spec](docs/superpowers/specs/2026-04-25-md-to-pdf-v2.x-roadmap.md) for full vision.
 

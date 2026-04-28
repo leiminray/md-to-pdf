@@ -1,4 +1,4 @@
-"""Image renderer (spec §2.1.4): raster auto-downsample + SVG via cairosvg.
+"""Image renderer: raster auto-downsample + SVG via cairosvg.
 
 Local file paths are resolved relative to the markdown document's
 directory (the caller passes an absolute path). Remote URLs (http/https)

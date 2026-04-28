@@ -1,4 +1,4 @@
-"""Tests for the MdpdfError hierarchy (spec §7.5)."""
+"""Tests for the MdpdfError hierarchy."""
 import pytest
 
 from mdpdf.errors import (
@@ -48,7 +48,7 @@ def test_brand_error_codes_are_documented():
 def test_template_not_found_for_non_generic():
     err = TemplateError(
         code="TEMPLATE_NOT_FOUND",
-        user_message="template 'quote' not found; v2.0 supports only 'generic'",
+        user_message="template 'quote' not found; supports only 'generic'",
     )
     assert err.code == "TEMPLATE_NOT_FOUND"
 
@@ -71,7 +71,7 @@ def test_args_contains_only_user_message():
 
 
 def test_renderer_error_codes_documented():
-    """The new Plan 3 RendererError codes are documented in the docstring."""
+    """The RendererError codes are documented in the docstring."""
     from mdpdf.errors import RendererError
     docstring = RendererError.__doc__ or ""
     for code in [
@@ -84,7 +84,7 @@ def test_renderer_error_codes_documented():
         assert code in docstring, f"missing {code} in RendererError docstring"
 
 
-# ── Plan 4 error code tests ────────────────────────────────────────────────
+
 
 
 def test_watermark_denied_code() -> None:
@@ -135,14 +135,14 @@ def test_pipeline_error_exit_code_for_audit_fail() -> None:
 
 
 def test_security_error_docs_plan4_codes() -> None:
-    """Plan 4 codes are documented in SecurityError docstring."""
+    """Error codes are documented in SecurityError docstring."""
     docstring = SecurityError.__doc__ or ""
     for code in ["WATERMARK_DENIED", "WATERMARK_CONTRAST_TOO_LOW"]:
         assert code in docstring, f"missing {code} in SecurityError docstring"
 
 
 def test_pipeline_error_docs_plan4_codes() -> None:
-    """Plan 4 codes are documented in PipelineError docstring."""
+    """Error codes are documented in PipelineError docstring."""
     docstring = PipelineError.__doc__ or ""
     for code in ["AUDIT_LOG_WRITE_FAILED", "DETERMINISTIC_VIOLATION"]:
         assert code in docstring, f"missing {code} in PipelineError docstring"

@@ -1,4 +1,4 @@
-"""Tests for PDF outline generation (spec §2.1.5)."""
+"""Tests for PDF outline generation."""
 from pathlib import Path
 
 from pypdf import PdfReader

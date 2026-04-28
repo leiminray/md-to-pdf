@@ -1,4 +1,4 @@
-"""Tests for brand registry — 3-layer overlay (spec §3.5)."""
+"""Tests for brand registry — 3-layer overlay."""
 from pathlib import Path
 
 import pytest

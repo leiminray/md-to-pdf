@@ -1,7 +1,7 @@
 """Integration test: comprehensive UAT fixture renders successfully.
 
 The fixture (`fixtures/branch_ops_ai_robot_product_brief.md`) exercises 11
-scenario categories per spec §7.2.1. Mermaid renderers are mocked so the
+scenario categories per specification. Mermaid renderers are mocked so the
 test does not require Kroki / mmdc / mermaid-py in CI.
 """
 from __future__ import annotations

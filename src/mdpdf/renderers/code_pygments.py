@@ -1,12 +1,12 @@
-"""Pygments-backed code renderer (spec §2.1.4).
+"""Pygments-backed code renderer.
 
 Tokenises a CodeFence with Pygments and maps tokens to a small GitHub
 Light palette. Returns a `CodeRenderResult` whose `lines` field is a
 list of lists of `ColoredFragment` (one inner list per source line);
-the caller (`FencedCodeCard` flowable, Plan 3 Task 4) lays them out
+the caller (`FencedCodeCard` flowable, the FencedCodeCard flowable) lays them out
 into a ReportLab paragraph.
 
-Truncation env vars (compatible with v1.8.9 behaviour):
+Truncation env vars (compatible with  behaviour):
 - MDPDF_FENCED_MAX_LINES (default 500)
 - MDPDF_FENCED_MAX_CHARS (default 262144)
 """

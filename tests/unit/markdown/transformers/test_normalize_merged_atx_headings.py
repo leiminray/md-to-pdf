@@ -1,4 +1,4 @@
-"""Tests for normalize_merged_atx_headings transformer (spec §2.1.3, v1.8.9 parity)."""
+"""Tests for normalize_merged_atx_headings transformer."""
 from mdpdf.markdown.ast import Document, Heading, Paragraph, Text
 from mdpdf.markdown.transformers.normalize_merged_atx_headings import (
     normalize_merged_atx_headings,
@@ -30,7 +30,7 @@ def test_splits_h2_and_h3():
 
 
 def test_does_not_split_at_lower_level():
-    """`# Part# Other` is NOT a run-on (both H1) — left alone per v1.8.9."""
+    """`# Part# Other` is NOT a run-on (both H1) — left alone per ."""
     doc = Document(children=[
         Heading(level=1, children=[Text(content="Part# Other")]),
     ])

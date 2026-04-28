@@ -1,4 +1,4 @@
-"""AST ListBlock → ReportLab ListFlowable (spec §2.1.5)."""
+"""AST ListBlock → ReportLab ListFlowable."""
 from __future__ import annotations
 
 from xml.sax.saxutils import escape
@@ -36,7 +36,7 @@ def ast_list_to_flowable(lst: ListBlock, body: ParagraphStyle) -> Flowable:
                 children_flowables.append(ast_list_to_flowable(child, body))
             else:
                 # Other block types inside list items (e.g., CodeFence, BlockQuote)
-                # are rare; render as plain paragraph fallback for Plan 3.
+                # are rare; render as plain paragraph fallback.
                 children_flowables.append(
                     RLParagraph(f"[{type(child).__name__}]", body)
                 )

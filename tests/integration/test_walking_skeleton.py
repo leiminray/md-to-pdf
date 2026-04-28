@@ -1,4 +1,4 @@
-"""End-to-end walking-skeleton: hello.md → PDF, via both API and CLI."""
+"""End-to-end smoke test: hello.md → PDF, via both API and CLI."""
 import json
 import shutil
 import subprocess
@@ -42,7 +42,7 @@ def test_pipeline_api_renders_hello(tmp_path: Path):
     assert out.exists()
     assert result.pages >= 1
     text = "".join(p.extract_text() for p in PdfReader(str(out)).pages)
-    assert "Walking Skeleton" in text
+    assert "Hello" in text
     assert "Goals" in text
     assert "bold" in text
     assert "italic" in text

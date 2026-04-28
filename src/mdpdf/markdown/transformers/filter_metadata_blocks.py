@@ -1,4 +1,4 @@
-"""Filter metadata blocks (spec §2.1.3, v1.8.9 default-strip behaviour).
+"""Filter metadata blocks (specification,  default-strip behaviour).
 
 Removes:
 1. A leading bullet list (right at document start, optionally after the H1)

@@ -1,4 +1,4 @@
-"""L2 XMP metadata watermark (spec §5.3).
+"""L2 XMP metadata watermark (specification).
 
 Writes 12 XMP keys into the PDF using pikepdf's ``open_metadata()`` context
 manager. The ``mdpdf:`` namespace is registered via pikepdf's namespace registry.

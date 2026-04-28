@@ -1,4 +1,4 @@
-"""End-to-end integration tests for Plan 4: watermarks, audit, determinism, locale.
+"""End-to-end integration tests for watermarks, audit, determinism, locale.
 
 Bundles Tasks 19/20/21 into a single test file. Subprocess-based tests use
 the resolved ``md-to-pdf`` console script; tests that need the in-process
@@ -79,7 +79,7 @@ class TestDeterministicRender:
     ) -> None:
         """Same inputs + SOURCE_DATE_EPOCH → identical sha256 across 3 runs.
 
-        Closes the spec §2.3 + CLAUDE.md determinism contract. Requires
+        Verifies the determinism contract. Requires
         pikepdf.Pdf.save(deterministic_id=True) on every PDF write that
         happens after the engine pass (apply_l2_xmp + freeze_pdf_dates).
         """
@@ -123,7 +123,7 @@ class TestFullFlow:
     def test_xmp_keys_present_after_render(
         self, tmp_path: Path, isolated_audit: Path
     ) -> None:
-        """All 12 spec §5.3 XMP keys land on the rendered PDF.
+        """All 12 specification XMP keys land on the rendered PDF.
 
         pikepdf's iteration returns namespace-URI form ``{http://...}local``;
         check those rather than prefix:local since the namespace registry is

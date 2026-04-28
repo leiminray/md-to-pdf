@@ -1,4 +1,4 @@
-"""Internal AST node types (spec §2.1.3).
+"""Internal AST node types.
 
 Decoupled from ReportLab so the AST can be reused by future engines and
 golden tests (`expected.ast.json`).
@@ -122,7 +122,7 @@ class ThematicBreak:
 
 @dataclass
 class Html:
-    """Raw HTML pass-through (optional; default-stripped in Plan 2)."""
+    """Raw HTML pass-through (optional; default-stripped)."""
 
     content: str
 

@@ -1,4 +1,4 @@
-"""Tests for the Click CLI (spec §6.1)."""
+"""Tests for the Click CLI."""
 import json
 from pathlib import Path
 
@@ -11,7 +11,7 @@ def test_version_subcommand_prints_version():
     runner = CliRunner()
     result = runner.invoke(main, ["version"])
     assert result.exit_code == 0
-    assert "2.0.0" in result.output
+    assert "0.2.1" in result.output
 
 
 def test_render_writes_pdf(tmp_path: Path):
@@ -21,7 +21,7 @@ def test_render_writes_pdf(tmp_path: Path):
     runner = CliRunner()
     result = runner.invoke(main, [str(src), "-o", str(out)])
     assert result.exit_code == 0
-    # stdout single line = absolute path of the produced PDF (spec §6.1)
+    # stdout single line = absolute path of the produced PDF
     assert result.output.strip() == str(out)
     assert out.exists()
 
@@ -48,12 +48,12 @@ def test_render_template_other_than_generic_exits_2(tmp_path: Path):
     out = tmp_path / "out.pdf"
     runner = CliRunner()  # Click 8.3+ separates stderr by default
     result = runner.invoke(main, [str(src), "-o", str(out), "--template", "quote"])
-    assert result.exit_code == 2  # configuration / argument error per spec §6.1
+    assert result.exit_code == 2  # configuration / argument error
     assert "TEMPLATE_NOT_FOUND" in result.stderr
 
 
 def test_help_advertises_plan4_flags():
-    """Plan 4 unhid the previously-hidden flags; verify they're now visible
+    """Flags exposed; verify they're now visible
     and that the new --no-watermark / --watermark-text flags also show up."""
     runner = CliRunner()
     result = runner.invoke(main, ["render", "--help"])
@@ -72,7 +72,7 @@ def test_help_advertises_plan4_flags():
 
 
 def test_deterministic_flag_no_longer_warns(tmp_path: Path):
-    """Plan 4 implements deterministic mode; the 'not yet implemented' warning
+    """Deterministic mode is implemented; the 'not yet implemented' warning
     is gone."""
     src = tmp_path / "in.md"
     src.write_text("# x")
@@ -167,15 +167,15 @@ def test_option_before_positional_dispatch(tmp_path: Path):
 
 def test_render_missing_input_exits_2_via_click_validation(tmp_path: Path):
     """Click rejects the missing path with usage error (exit 2) before our
-    RESOURCE_MISSING (exit 4) handler runs. Plan 5 may move path validation
-    inside the pipeline so this becomes exit 4 per spec §6.1 row 4.
+    RESOURCE_MISSING (exit 4) handler runs. May move path validation
+    inside the pipeline so this becomes exit 4.
     """
     out = tmp_path / "out.pdf"
     runner = CliRunner()
     result = runner.invoke(main, [str(tmp_path / "missing.md"), "-o", str(out)])
     assert result.exit_code == 2
     # TODO(plan-5): move path-existence check into Pipeline.render's validate
-    # phase so RESOURCE_MISSING (exit 4) is returned per spec §6.1.
+    # phase so RESOURCE_MISSING (exit 4) is returned.
 
 
 def test_brand_list_subcommand_runs(tmp_path: Path, monkeypatch: object) -> None:

@@ -1,4 +1,4 @@
-"""Custom ReportLab Flowables (spec §2.1.5).
+"""Custom ReportLab Flowables.
 
 This module hosts the brand-styled Flowables used by `engine_reportlab`:
 - FencedCodeCard: code fences with lang badge + accent bar + line numbers
@@ -186,7 +186,7 @@ class MermaidImage(Flowable):
 
 @dataclass
 class CalloutBox(Flowable):
-    """Bordered card for blockquotes (spec §2.1.5).
+    """Bordered card for blockquotes.
 
     Optional left-edge accent bar in brand colour. Body is a list of
     Flowables (paragraphs, lists, etc.) that get wrapped in a Table.

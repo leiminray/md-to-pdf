@@ -1,36 +1,35 @@
 # Roadmap
 
-## v2.0 — shipped
+## v0.2.1 — shipped (current release)
 
-Plans 1–5 (this release):
+Core features in this release:
 
-- **Plan 1** — walking skeleton: markdown-it-py → AST → ReportLab.
-- **Plan 2** — AST transformers + brand v2 schema + 3-layer registry.
-- **Plan 3** — renderers (Pygments / Mermaid chain / image) + custom
-  Flowables (FencedCodeCard / MermaidImage / CalloutBox / ListBlock /
-  PDF outline).
-- **Plan 4** — L1 visible + L2 XMP watermarks, JSONL audit log,
-  deterministic mode (`--deterministic` + `SOURCE_DATE_EPOCH` →
-  byte-for-byte identical PDF), post-process pipeline (footer +
-  issuer card).
-- **Plan 5** — comprehensive UAT fixture, golden harness foundation,
-  `doctor` + `fonts list/install` subcommands, CI matrix expansion
-  (Python 3.10–3.13 × Ubuntu/macOS/Windows + libcairo + Kroki),
-  `--legacy-brand` deprecation, mkdocs-material site scaffold.
+- **Markdown engine** — markdown-it-py → AST → ReportLab pipeline
+- **AST transformers** — frontmatter strip, outline collection, run-on heading split, TOC promotion, metadata block filtering
+- **Brand pack v2** — Pydantic schema with 3-layer registry (project / user / built-in)
+- **Renderers** — Pygments syntax highlighting, Mermaid chain (Kroki / Puppeteer / pure-Python), image renderer with auto-downsampling
+- **Custom flowables** — FencedCodeCard, MermaidImage, CalloutBox, ListBlock, PDF outline
+- **Watermarks** — L1 visible diagonal overlay + L2 XMP metadata
+- **Audit log** — JSONL format audit trail
+- **Determinism** — `--deterministic` + `SOURCE_DATE_EPOCH` → byte-identical PDF
+- **Post-process** — footer + issuer card pipeline
+- **CLI** — `render`, `brand list/show/migrate/validate`, `doctor`, `fonts list/install`
+- **Quality** — 443 passing tests, multi-OS CI (Python 3.10–3.13 × Linux/macOS/Windows)
+- **Documentation** — mkdocs-material site
 
-## v2.1 — planned
+## v0.3 — planned
 
 - Template-pack system (typed front-matter, computed fields, registry)
 - `quote` / `user-manual` / `certificate` templates
-- Additional golden-harness layers (XMP / layout fingerprint / sha256)
+- Multiple rendering engines (e.g. WeasyPrint)
 
-## v2.2 — planned
+## v0.4 — planned
 
 - MCP server / Skill bundle
 - GitHub Action for `md-to-pdf` in CI
 - Docker images
 
-## v2.3 — planned
+## v1.0 — planned
 
 - L3 steganographic / L4 encrypted / L5 signed watermarks
 - `policy.yaml` brand-lock / template-lock
@@ -38,11 +37,10 @@ Plans 1–5 (this release):
 - `forensics extract` / `forensics verify` subcommands
 - HMAC tamper-protection on XMP
 
-## v3.0 — planned
+## Long-term
 
-- Remove `--legacy-brand` and `mdpdf.brand.legacy` (deprecated since v2.0)
-- Remove the v1.8.9 monolith remnants (already removed in v2.0 if the
-  parity gate is met)
+- Removal of deprecated `--legacy-brand` and `mdpdf.brand.legacy` adapter
+- Refinement of brand schema based on user feedback
+- Performance optimization for large documents
 
-See `docs/superpowers/specs/2026-04-25-md-to-pdf-v2.x-roadmap.md` in the
-repo for the full long-form roadmap.
+See `docs/superpowers/specs/` in the repo for detailed long-form specifications.

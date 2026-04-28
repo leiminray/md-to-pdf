@@ -1,4 +1,4 @@
-"""sha256-keyed on-disk cache for renderer outputs (spec §2.1.4)."""
+"""sha256-keyed on-disk cache for renderer outputs."""
 from __future__ import annotations
 
 import hashlib

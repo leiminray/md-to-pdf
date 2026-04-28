@@ -1,11 +1,11 @@
 # Watermarks
 
-v2.0 ships two watermark layers:
+v0.2.1 ships two watermark layers:
 
 ## L1 — visible diagonal text
 
 Tiled rotated text on every page (Helvetica 13 pt, 38° rotation,
-120 pt row spacing per spec §5.2 default). Template:
+120 pt row spacing). Template:
 `{brand_name} // {user} // {render_date}`.
 
 The watermark colour is subject to a WCAG contrast guard

@@ -1,4 +1,4 @@
-"""Tests for collect_outline transformer (spec §2.1.3)."""
+"""Tests for collect_outline transformer."""
 from mdpdf.markdown.ast import (
     Document,
     Heading,

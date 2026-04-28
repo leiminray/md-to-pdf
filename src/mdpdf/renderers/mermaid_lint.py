@@ -1,4 +1,4 @@
-"""Mermaid input sandbox (spec §5.5).
+"""Mermaid input sandbox.
 
 Rejects sources that exceed resource limits OR contain XSS / injection
 patterns. Runs BEFORE dispatching to any renderer (Kroki, Puppeteer, pure)

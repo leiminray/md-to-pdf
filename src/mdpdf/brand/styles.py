@@ -1,6 +1,6 @@
-"""Build ReportLab ParagraphStyles from a BrandPack (spec §3.3).
+"""Build ReportLab ParagraphStyles from a BrandPack.
 
-Replaces Plan 1's `getSampleStyleSheet()` defaults.
+Replaces ReportLab's default styles with brand-aware ones.
 """
 from __future__ import annotations
 

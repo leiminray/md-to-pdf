@@ -1,4 +1,4 @@
-"""Strip a leading FrontMatter node from a Document (spec §2.1.3).
+"""Strip a leading FrontMatter node from a Document.
 
 Front-matter parsed by markdown-it-py is captured as a `FrontMatter` AST
 node. This transformer removes it from the rendered body and parses the

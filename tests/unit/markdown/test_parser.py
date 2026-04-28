@@ -1,4 +1,4 @@
-"""Tests for the markdown-it-py → AST conversion (spec §2.1.3)."""
+"""Tests for the markdown-it-py → AST conversion."""
 from mdpdf.markdown.ast import (
     BlockQuote,
     CodeFence,

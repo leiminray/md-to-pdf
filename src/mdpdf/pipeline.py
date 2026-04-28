@@ -1,6 +1,6 @@
 """Pipeline contracts and orchestrator (RenderRequest, RenderResult, Pipeline).
 
-See spec §2.1.1, §2.1.7.
+Render request/result data classes.
 """
 from __future__ import annotations
 
@@ -58,13 +58,13 @@ from mdpdf.security.deterministic import (
 
 _log = structlog.get_logger("mdpdf.pipeline")
 
-# v2.0 allowlist; replaced by template registry in v2.1.
+# v0.2.1 allowlist; replaced by template registry in v2.1.
 _TEMPLATE_ALLOWLIST = frozenset({"generic"})
 
 
 @dataclass(frozen=True)
 class WatermarkOptions:
-    """Watermark configuration. `level` per spec §2.4 — 'L0' / 'L1' / 'L2' / 'L1+L2'."""
+    """Watermark configuration. `level` is one of 'L0', 'L1', 'L2', or 'L1+L2'."""
 
     user: str | None = None
     level: Literal["L0", "L1", "L2", "L1+L2"] = "L1+L2"
@@ -73,7 +73,7 @@ class WatermarkOptions:
 
 @dataclass(frozen=True)
 class RenderRequest:
-    """Unified input contract for CLI and Python API (spec §2.1.1)."""
+    """Unified input contract for CLI and Python API."""
 
     source: str | Path
     source_type: Literal["content", "path"]
@@ -95,7 +95,7 @@ class RenderRequest:
 
 @dataclass(frozen=True)
 class RenderMetrics:
-    """Per-phase timing in milliseconds (spec §2.1.7)."""
+    """Per-phase timing in milliseconds."""
 
     parse_ms: int
     asset_resolve_ms: int
@@ -106,7 +106,7 @@ class RenderMetrics:
 
 @dataclass(frozen=True)
 class RenderResult:
-    """Pipeline.render() return value (spec §2.1.7)."""
+    """Pipeline.render() return value."""
 
     output_path: Path
     render_id: str
@@ -118,9 +118,9 @@ class RenderResult:
 
 
 class Pipeline:
-    """Top-level orchestrator (spec §2.1).
+    """Top-level orchestrator.
 
-    Plan 1 implements: validate (template allowlist only) → parse → render →
+    Pipeline phases: validate (template allowlist only) → parse → render →
     output (atomic write) → metrics. AST transformers, brand resolution,
     asset resolution, watermark/audit post-processing land in plans 2–4.
     """
@@ -249,7 +249,7 @@ class Pipeline:
                 code="TEMPLATE_NOT_FOUND",
                 user_message=(
                     f"template '{request.template}' not found; "
-                    "v2.0 supports only 'generic'. "
+                    "supports only 'generic'. "
                     "See release notes for v2.1 template-pack system."
                 ),
                 render_id=render_id,
@@ -349,7 +349,7 @@ class Pipeline:
             ) from exc
         render_ms = int((time.perf_counter() - t_render_start) * 1000)
 
-        # Post-process phase (Plan 4): footer + issuer card + watermarks +
+        # Post-process phase : footer + issuer card + watermarks +
         # deterministic date freeze. Runs in-place on the output PDF.
         from mdpdf.post_process.pipeline import (
             PostProcessOptions,
@@ -434,7 +434,7 @@ class Pipeline:
         brand: BrandPack | None, requested_level: str, render_id: str
     ) -> None:
         """Raise SecurityError if the requested watermark level is below the
-        brand's mandated minimum (spec §5.2). Permissive defaults: a brand
+        brand's mandated minimum. Permissive defaults: a brand
         with no SecurityConfig (or watermark_min_level == "L0") allows any
         level including L0.
         """
@@ -482,7 +482,7 @@ class Pipeline:
 
         ctx = RenderContext(
             cache_root=Path.home() / ".md-to-pdf" / "cache",
-            brand_pack=None,  # populated when we wire brand into RenderContext (Plan 4)
+            brand_pack=None,  # populated when we wire brand into RenderContext 
             allow_remote_assets=request.allow_remote_assets,
             deterministic=request.deterministic,
         )

@@ -1,4 +1,4 @@
-"""User-mode JSONL audit logger (spec §5.4 + Appendix A).
+"""User-mode JSONL audit logger.
 
 Appends one JSON line per event to ``~/.md-to-pdf/audit.jsonl`` (default).
 The file is opened only in append mode so concurrent processes do not
@@ -183,7 +183,7 @@ class AuditLogger:
         if sys.platform.startswith("win"):
             if not AuditLogger._WIN32_WARNED:
                 warnings.warn(
-                    "audit log file permissions are POSIX-only in v2.0; "
+                    "audit log file permissions are POSIX-only in v0.2.1; "
                     "Windows ACL hardening lands in v2.3",
                     stacklevel=3,
                 )

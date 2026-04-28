@@ -1,8 +1,8 @@
-"""markdown-it-py → internal AST conversion (spec §2.1.3).
+"""markdown-it-py → internal AST conversion.
 
 GFM extensions: tables, strikethrough. AST transformers (frontmatter strip,
 heading-merge, metadata-filter, TOC promotion, mermaid extraction, outline
-collection) are added in Plan 2 (this file currently performs only the
+collection) are handled by transformers (this file performs only the
 parse step; transformers are a separate module).
 """
 from __future__ import annotations
@@ -107,8 +107,8 @@ def _convert_blocks(tokens: list[Token], start: int, end: int) -> list[Block]:
                 out.append(FrontMatter(raw=raw))
                 i += 1
             case _:
-                # Unknown / unsupported block — skip silently in Plan 1.
-                # Plan 2's transformers may handle additional cases (HTML).
+                # Unknown / unsupported block — skip silently.
+                # Transformers may handle additional cases (HTML).
                 i += 1
     return out
 
@@ -215,7 +215,7 @@ def _walk_inline(children: list[Token]) -> list[Inline]:
             case "softbreak" | "hardbreak":
                 out.append(Text(content="\n"))
             case _:
-                # Unknown inline — skip silently in Plan 1.
+                # Unknown inline — skip silently.
                 pass
         i += 1
     return out

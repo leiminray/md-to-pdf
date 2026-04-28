@@ -1,6 +1,6 @@
-"""Font manager (spec §3.3 footnote, §2.1.2 step 5).
+"""Font manager.
 
-Replaces Plan 1's quick byte-level CJK detector. The manager checks whether
+Replaces a quick byte-level CJK detector. The manager checks whether
 a CJK-capable font is registered (or registerable) given:
 1. brand-pack `assets/fonts/` directory (if provided)
 2. bundled `<repo>/fonts/NotoSansSC-*.ttf`
@@ -88,7 +88,7 @@ class FontManager:
                 user_message=(
                     "input contains CJK characters but no CJK-capable font is "
                     "available in brand pack, bundled fonts/, or system fallbacks. "
-                    "Install Noto Sans CJK or run via v1.8.9 (scripts/md_to_pdf.py) "
+                    "Install Noto Sans CJK or run via  (scripts/md_to_pdf.py) "
                     "until brand-pack font auto-discovery improves."
                 ),
             )

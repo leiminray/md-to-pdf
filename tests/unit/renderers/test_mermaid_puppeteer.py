@@ -1,4 +1,4 @@
-"""Tests for the Puppeteer-based Mermaid renderer (spec §2.1.4)."""
+"""Tests for the Puppeteer-based Mermaid renderer."""
 import subprocess
 from pathlib import Path
 

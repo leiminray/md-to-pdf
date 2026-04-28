@@ -33,7 +33,7 @@ When using md-to-pdf:
 ### 2. Watermarking & Audit Logs
 
 - Enable watermarks with `--watermark-user` to track document ownership
-- L2 XMP watermarks are cryptographically hashed for tamper detection (Plan 5+)
+- L2 XMP watermarks are cryptographically hashed for tamper detection
 - Audit logs (`~/.md-to-pdf/audit.jsonl`) record all render operations; monitor for unexpected entries
 
 ### 3. Font & Asset Management
@@ -52,9 +52,7 @@ When using md-to-pdf:
 
 | Version | Status | Security Updates |
 |---------|--------|------------------|
-| 2.0.x   | Current | Yes — all patches |
-| 2.0.0a1 | Pre-release | No — upgrade to 2.0.0 |
-| 1.8.9   | Deprecated | No — migrate to 2.0.0 |
+| 0.2.x   | Current | Yes — all patches |
 
 ## Known Security Considerations
 
@@ -73,11 +71,11 @@ For sensitive documents, use the pure-Python renderer or validate diagram source
 
 ### PDF/A Compliance
 
-md-to-pdf v2.0 does not yet produce PDF/A-2b (archive format). Use external tools like veraPDF if archival compliance is required. PDF/A support is planned for v2.3.
+md-to-pdf does not yet produce PDF/A-2b (archive format). Use external tools like veraPDF if archival compliance is required. PDF/A support is planned for a future release.
 
 ## Version History
 
-- **2.0.0** (2026-04-28): First release with comprehensive security model (L1 + L2 watermarks, audit logging, determinism verification)
+- **0.2.1** (2026-04-29): Initial beta release with security model (L1 + L2 watermarks, audit logging, determinism verification)
 
 ## Contact
 

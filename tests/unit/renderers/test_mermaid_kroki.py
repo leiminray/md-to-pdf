@@ -1,4 +1,4 @@
-"""Tests for the Kroki Mermaid renderer (spec §2.1.4)."""
+"""Tests for the Kroki Mermaid renderer."""
 from pathlib import Path
 
 import pytest

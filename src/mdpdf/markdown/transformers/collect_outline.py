@@ -1,4 +1,4 @@
-"""Build a heading outline for PDF bookmarks + TOC links (spec §2.1.3).
+"""Build a heading outline for PDF bookmarks + TOC links.
 
 Walks the document, extracts plain text from each Heading's inline children,
 clamps level jumps to ≤ +1 (ReportLab outline restriction — child levels

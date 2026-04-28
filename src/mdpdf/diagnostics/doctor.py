@@ -1,4 +1,4 @@
-"""md-to-pdf doctor — structured environment health report (spec §6.3).
+"""md-to-pdf doctor — structured environment health report (environment health report).
 
 Returns a dict suitable for JSON serialisation. Every probe is wrapped in
 try/except so ``run_doctor()`` never raises. All imports live at module top

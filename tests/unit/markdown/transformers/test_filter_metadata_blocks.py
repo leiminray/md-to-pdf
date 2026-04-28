@@ -1,4 +1,4 @@
-"""Tests for filter_metadata_blocks transformer (spec §2.1.3, v1.8.9 parity)."""
+"""Tests for filter_metadata_blocks transformer."""
 from mdpdf.markdown.ast import (
     Document,
     Heading,

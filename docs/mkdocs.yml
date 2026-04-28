@@ -1,4 +1,4 @@
-site_name: md-to-pdf v2.0
+site_name: md-to-pdf v0.2.1
 theme:
   name: material
   features:

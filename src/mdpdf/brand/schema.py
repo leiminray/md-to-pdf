@@ -1,9 +1,9 @@
-"""Brand pack v2 pydantic schema (spec §3.2-3.4).
+"""Brand pack v2 pydantic schema.
 
 Loads `brand.yaml` + `theme.yaml` + `compliance.yaml` from a brand pack
 directory, validates structure, and returns a `BrandPack` object.
 
-Locale overlays (spec §3.1) are loaded by `registry.py` after schema
+Locale overlays are loaded by `registry.py` after schema
 validation, since they're optional and merge over the base.
 """
 from __future__ import annotations
@@ -149,7 +149,7 @@ def load_brand_pack(pack_root: Path) -> BrandPack:
     if not (pack_root / "LICENSE").exists():
         raise BrandError(
             code="BRAND_VALIDATION_FAILED",
-            user_message=f"brand pack at {pack_root} missing required LICENSE file (spec §3.1)",
+            user_message=f"brand pack at {pack_root} missing required LICENSE file",
         )
     brand_yaml = _load_yaml(pack_root / "brand.yaml")
     schema_major = int(str(brand_yaml.get("schema_version", "0")).split(".")[0])
@@ -158,7 +158,7 @@ def load_brand_pack(pack_root: Path) -> BrandPack:
             code="BRAND_VALIDATION_FAILED",
             user_message=(
                 f"brand schema version {brand_yaml.get('schema_version')} not supported; "
-                f"v2.0 supports schema major {_SUPPORTED_SCHEMA_MAJOR}.x"
+                f"v0.2.1 supports schema major {_SUPPORTED_SCHEMA_MAJOR}.x"
             ),
         )
     if brand_yaml.get("id") != pack_root.name:
@@ -166,7 +166,7 @@ def load_brand_pack(pack_root: Path) -> BrandPack:
             code="BRAND_VALIDATION_FAILED",
             user_message=(
                 f"brand id '{brand_yaml.get('id')}' does not match directory "
-                f"name '{pack_root.name}' (spec §3.2)"
+                f"name '{pack_root.name}' "
             ),
         )
     theme_path = pack_root / brand_yaml.get("theme", "./theme.yaml").lstrip("./")

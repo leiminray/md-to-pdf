@@ -1,6 +1,6 @@
 """Split run-on ATX headings like `# Part## Chapter` into two heading nodes.
 
-v1.8.9 parity behaviour. Conservative: only splits when:
+parity behaviour. Conservative: only splits when:
 - the heading's only child is a single Text node
 - the text contains a substring `##+` (two or more hashes) at a position
   that would form a higher-level heading (level + N where N >= 1)

@@ -1,1 +1,1 @@
-"""Brand-pack v2 system (spec §3)."""
+"""Brand-pack v2 system."""

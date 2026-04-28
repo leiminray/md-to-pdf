@@ -1,4 +1,4 @@
-"""Tests for AST node dataclasses (spec §2.1.3)."""
+"""Tests for AST node dataclasses."""
 from mdpdf.markdown.ast import (
     CodeFence,
     Document,

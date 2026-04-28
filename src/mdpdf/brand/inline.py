@@ -1,4 +1,4 @@
-"""Inline brand loading (spec §3.6).
+"""Inline brand loading.
 
 `--brand-config <path>` accepts a single YAML file containing the full
 brand+theme+compliance content inline. The directory of the file becomes

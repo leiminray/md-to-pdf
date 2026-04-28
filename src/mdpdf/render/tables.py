@@ -1,6 +1,6 @@
-"""Content-weighted column-width algorithm (spec §2.1.5).
+"""Content-weighted column-width algorithm.
 
-Inspired by v1.8.9's algorithm in `scripts/md_to_pdf.py`. For each column:
+Inspired by 's algorithm in `scripts/md_to_pdf.py`. For each column:
 - raw_weight = max(cell length) * 0.6 + sum(cell length) / row_count * 0.4
 Then normalise weights to sum to 1.0, multiply by available width, clamp
 each column to [min_pct, max_pct] of available width, and re-distribute
@@ -45,7 +45,7 @@ def compute_column_widths(
     min_w = min((min_pct / 100.0) * available_width_pt, available_width_pt / n_cols)
     max_w = (max_pct / 100.0) * available_width_pt
 
-    # Iterate to convergence (≤ 6 passes per spec §2.1.5 reference)
+    # Iterate to convergence (≤ 6 passes)
     for _ in range(6):
         residual = 0.0
         clamped: list[bool] = [False] * n_cols

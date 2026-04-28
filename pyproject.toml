@@ -69,27 +69,11 @@ packages = ["src/mdpdf"]
 
 [tool.pytest.ini_options]
 addopts = "-ra --strict-markers"
-# Scope pytest to the v2 test trees. Legacy v1.8.9 tests under
-# `tests/test_md_to_pdf_*.py` are preserved on disk as historical reference
-# but cannot run against v2 (they import the v1 monolith). Plan 5 removes them.
 testpaths = ["tests/unit", "tests/integration", "tests/golden"]
 
 [tool.ruff]
 line-length = 100
 target-version = "py310"
-# Legacy v1.8.9 tests live on disk for reference (Plan 5 deletes them) but
-# don't conform to v2 lint rules; keep them out of ruff's view to match
-# pytest's testpaths scoping.
-extend-exclude = [
-  "scripts/md_to_pdf.py",
-  "scripts/brand_pack.py",
-  "scripts/fenced_rl.py",
-  "scripts/ensure_mermaid_deps.py",
-  "tests/test_md_to_pdf_cjk.py",
-  "tests/test_md_to_pdf_fences.py",
-  "tests/test_md_to_pdf_mermaid_caption_text.py",
-  "tests/test_md_to_pdf_toc_watermark.py",
-]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "N", "S", "C4", "SIM"]

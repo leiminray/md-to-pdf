@@ -1,4 +1,4 @@
-"""Tests for v1 → v2 brand migrator (spec §3.8)."""
+"""Tests for v1 → v2 brand migrator."""
 from pathlib import Path
 
 import pytest

@@ -1,4 +1,4 @@
-"""Tests for font_manager (spec §3.3 footnote, §2.1.2 step 5)."""
+"""Tests for font_manager."""
 from pathlib import Path
 
 import pytest

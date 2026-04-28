@@ -1,4 +1,4 @@
-"""Kroki HTTP-based Mermaid renderer (spec §2.1.4)."""
+"""Kroki HTTP-based Mermaid renderer."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -13,7 +13,7 @@ from mdpdf.renderers.mermaid_lint import lint_mermaid_source
 
 _TIMEOUT_S = 30.0
 _RENDERER_VERSION = "kroki-v1"
-_THEME = "default"  # Plan 4 will wire brand.compliance.mermaid_theme here
+_THEME = "default"  # Wires brand.compliance.mermaid_theme here
 
 
 @dataclass

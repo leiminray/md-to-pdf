@@ -1,4 +1,4 @@
-"""Tests for the Mermaid renderer chain selector (spec §2.1.4)."""
+"""Tests for the Mermaid renderer chain selector."""
 from pathlib import Path
 
 import pytest

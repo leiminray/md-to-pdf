@@ -2,10 +2,10 @@
 
 Brand packs define the visual identity for PDF renders. See `examples/brands/idimsum/` for reference.
 
-## Schema (v2.0)
+## Schema (v0.2.1)
 
 ```yaml
-spec_version: "v2.0"
+spec_version: "v0.2.1"
 metadata:
   name: "Brand Name"
   description: "Description"

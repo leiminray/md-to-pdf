@@ -1,4 +1,4 @@
-"""Tests for brand field overrides (spec §3.6)."""
+"""Tests for brand field overrides."""
 import pytest
 
 from mdpdf.brand.overrides import apply_overrides, parse_override

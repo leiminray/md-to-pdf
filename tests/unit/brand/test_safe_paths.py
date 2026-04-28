@@ -1,4 +1,4 @@
-"""Tests for safe_paths (path-sandbox spec §3, §5.4)."""
+"""Tests for safe_paths."""
 from pathlib import Path
 
 import pytest

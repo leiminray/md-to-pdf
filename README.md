@@ -125,7 +125,7 @@ Options:
 ```bash
 md-to-pdf brand list                    # List available brands
 md-to-pdf brand show BRAND_ID           # Show brand details
-md-to-pdf brand migrate SRC DST         # Migrate v1.8.9 brand kit to v0.2 format
+md-to-pdf brand migrate SRC DST         # Migrate  brand kit to v0.2 format
 md-to-pdf brand validate PATH           # Validate brand pack schema
 ```
 

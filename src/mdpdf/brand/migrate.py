@@ -1,7 +1,7 @@
-"""v1 → v2 brand pack migrator (spec §3.8).
+"""v1 → v2 brand pack migrator.
 
-Reads a v1 brand_kits/-style directory, produces a v2 pack at the target
-location with the schema documented in spec §3.
+Reads a legacy brand_kits/-style directory, produces a v2 pack at the target
+location with the schema documented.
 
 CLI surface: `md-to-pdf brand migrate <v1-path> <v2-output-dir>`.
 """

@@ -1,6 +1,6 @@
 """WCAG 2.1 relative luminance and contrast ratio utilities.
 
-Used by the watermark layer to enforce the minimum-contrast guard (spec §5.2).
+Used by the watermark layer to enforce the minimum-contrast guard.
 """
 from __future__ import annotations
 
@@ -64,7 +64,7 @@ def enforce_min_contrast(
     """Return *watermark_color* if contrast is sufficient; raise otherwise.
 
     The minimum ratio of 1.05 ensures the watermark is perceptible against the
-    page background while remaining unobtrusive (spec §5.2 "visible-yet-subtle"
+    page background while remaining unobtrusive ("visible-yet-subtle"
     requirement). Brand packs may override the watermark colour subject to this
     guard — the guard is not bypassed even by override.
 

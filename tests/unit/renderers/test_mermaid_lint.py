@@ -1,4 +1,4 @@
-"""Tests for Mermaid input lint sandbox (spec §5.5)."""
+"""Tests for Mermaid input lint sandbox."""
 import pytest
 
 from mdpdf.errors import RendererError

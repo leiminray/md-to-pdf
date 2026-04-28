@@ -1,4 +1,4 @@
-"""End-to-end Plan 2 integration: branded render + CJK round-trip."""
+"""End-to-end brand integration: branded render + CJK round-trip."""
 import shutil
 import subprocess
 import sys
@@ -35,7 +35,7 @@ def test_branded_hello_renders(tmp_path: Path):
     assert proc.returncode == 0, proc.stderr
     assert out.exists()
     text = "".join(p.extract_text() for p in PdfReader(str(out)).pages)
-    assert "Walking Skeleton" in text
+    assert "Hello" in text
 
 
 def test_cjk_renders_with_brand(tmp_path: Path):

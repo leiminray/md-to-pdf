@@ -1,4 +1,4 @@
-"""Tests for custom ReportLab Flowables (spec §2.1.5)."""
+"""Tests for custom ReportLab Flowables."""
 from pathlib import Path
 
 from pypdf import PdfReader

@@ -1,7 +1,7 @@
 """Pure-Python Mermaid renderer via the optional `mermaid-py` package.
 
 Lower fidelity than mmdc/Kroki. Always rejected when `--deterministic`
-is set (spec §2.3) because the pure-Python implementation is not
+is set  because the pure-Python implementation is not
 guaranteed to produce bit-identical output across releases.
 """
 from __future__ import annotations
@@ -16,7 +16,7 @@ from mdpdf.renderers.base import RenderContext, Renderer
 from mdpdf.renderers.mermaid_lint import lint_mermaid_source
 
 _RENDERER_VERSION = "mermaid-py-v1"
-_THEME = "default"  # Plan 4 will wire brand.compliance.mermaid_theme here
+_THEME = "default"  # Wires brand.compliance.mermaid_theme here
 
 
 def _import_mermaid() -> Any | None:

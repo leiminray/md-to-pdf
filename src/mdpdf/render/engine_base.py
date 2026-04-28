@@ -1,4 +1,4 @@
-"""RenderEngine abstract base class (spec §1.3, §2.1.5)."""
+"""RenderEngine abstract base class."""
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -8,11 +8,11 @@ from mdpdf.markdown.ast import Document
 
 
 class RenderEngine(ABC):
-    """Engine ABC — one impl in v2.0 (ReportLab); WeasyPrint deferred to v2.x.
+    """Engine ABC — one impl in v0.2.1 (ReportLab); WeasyPrint deferred to v2.x.
 
     Implementations consume a fully-resolved Document AST and write the
     PDF bytes to `output`. Watermark/footer/issuer post-processing happens
-    later in the pipeline (Plan 4) and is engine-agnostic.
+    later in the pipeline  and is engine-agnostic.
 
     Returns the page count as an integer.
     """

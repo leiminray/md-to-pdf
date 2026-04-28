@@ -1,4 +1,4 @@
-"""Tests for inline brand loading (spec §3.6)."""
+"""Tests for inline brand loading."""
 from pathlib import Path
 
 import pytest

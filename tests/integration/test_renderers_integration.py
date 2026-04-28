@@ -1,4 +1,4 @@
-"""End-to-end integration tests for Plan 3 renderers + flowables.
+"""End-to-end integration tests for renderers + flowables.
 
 Mocks the Mermaid renderer chain so tests don't require Kroki / mmdc / mermaid-py
 in CI; the chain selection logic itself is exercised in unit tests.

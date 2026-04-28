@@ -1,4 +1,4 @@
-"""Tests for RenderRequest, RenderResult, RenderMetrics + Pipeline (spec §2.1)."""
+"""Tests for RenderRequest, RenderResult, RenderMetrics + Pipeline."""
 import hashlib
 import json
 import uuid
@@ -82,7 +82,7 @@ def test_pipeline_rejects_non_generic_template(tmp_path: Path):
         source="x",
         source_type="content",
         output=tmp_path / "out.pdf",
-        template="quote",  # not allowed in v2.0
+        template="quote",  # not allowed in v0.2.1
     )
     try:
         pipeline.render(req)
@@ -95,7 +95,7 @@ def test_pipeline_rejects_non_generic_template(tmp_path: Path):
 def test_pipeline_renders_content_string(tmp_path: Path):
     pipeline = Pipeline.from_env()
     req = RenderRequest(
-        source="# Hello\n\nWalking skeleton.",
+        source="# Hello\n\nCore.",
         source_type="content",
         output=tmp_path / "out.pdf",
     )
@@ -328,7 +328,7 @@ def test_pipeline_override_to_forbidden_field_raises(tmp_path: Path):
         raise AssertionError("expected BrandError")
 
 
-# ── Plan 4: post-process + audit + deterministic-mode wiring ────────────────
+# post-process + audit + deterministic-mode wiring ────────────────
 
 
 class TestPipelinePostProcess:

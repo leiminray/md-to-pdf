@@ -1,6 +1,6 @@
 """Issuer card overlay: rendered on the last page only.
 
-Ports the v1.8.9 layout from ``scripts/md_to_pdf.py``:
+Ports the  layout from ``scripts/md_to_pdf.py``:
 - Left-edge colour border strip
 - Card background rectangle
 - Issuer name (bold, title colour)

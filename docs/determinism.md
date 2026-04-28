@@ -36,7 +36,7 @@ committed UAT fixtures.
 ## Deterministic golden suite
 
 `tests/golden/` contains layered snapshot tests (AST + text-layer in
-v2.0; XMP / layout / sha256 in follow-ups). Run with:
+v0.2.1; XMP / layout / sha256 in follow-ups). Run with:
 
 ```bash
 pytest tests/golden/                    # assert against committed baselines

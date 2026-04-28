@@ -1,4 +1,4 @@
-"""Tests for atomic_write + TempContext (spec §5.6, §2.1.7)."""
+"""Tests for atomic_write + TempContext."""
 from pathlib import Path
 
 import pytest

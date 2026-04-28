@@ -1,4 +1,4 @@
-"""Atomic file writes and managed temporary directories (spec §2.1.7, §5.6).
+"""Atomic file writes and managed temporary directories.
 
 `atomic_write(target)` writes to `target.tmp.<random>` and renames on
 successful close, guaranteeing readers never see a partial PDF.

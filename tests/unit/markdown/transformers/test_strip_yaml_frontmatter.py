@@ -1,4 +1,4 @@
-"""Tests for strip_yaml_frontmatter transformer (spec §2.1.3)."""
+"""Tests for strip_yaml_frontmatter transformer."""
 from mdpdf.markdown.ast import Document, FrontMatter, Heading, Paragraph, Text
 from mdpdf.markdown.transformers.strip_yaml_frontmatter import strip_yaml_frontmatter
 

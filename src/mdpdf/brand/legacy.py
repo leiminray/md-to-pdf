@@ -1,15 +1,15 @@
-"""v1 brand_kits/ layout adapter (--legacy-brand).
+"""legacy brand_kits/ layout adapter (--legacy-brand).
 
-Reads the legacy v1.8.9 layout (theme.yaml + compliance.md + flat assets)
+Reads the legacy  layout (theme.yaml + compliance.md + flat assets)
 and returns a synthesised v2 BrandPack. Emits a deprecation message that
 the caller surfaces to stderr.
 
 The legacy layout is documented by the existing repo's `brand_kits/`:
 - theme.yaml — colours/typography/assets in a different schema than v2
 - compliance.md — `## brand profiles`, `## Footer confidential`,
-  `## Issuer lines` sections parsed regex-style by v1.8.9's brand_pack.py
+  `## Issuer lines` sections parsed regex-style by 's brand_pack.py
 
-This adapter is removed in v3.0 (per Plan 1 §8.4); v2.1 adds a deprecation
+This adapter is deprecated and will be removed in v3.0; current versions emit a deprecation
 warning when used.
 """
 from __future__ import annotations

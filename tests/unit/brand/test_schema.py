@@ -1,4 +1,4 @@
-"""Tests for brand pydantic schema (spec §3.2-3.4)."""
+"""Tests for brand pydantic schema."""
 from pathlib import Path
 
 import pytest
@@ -108,7 +108,7 @@ def test_missing_brand_yaml_raises(tmp_path: Path):
 
 
 def test_missing_license_raises(tmp_path: Path):
-    """LICENSE file is required (spec §3.1)."""
+    """LICENSE file is required."""
     brand_dir = tmp_path / "no-license"
     brand_dir.mkdir()
     (brand_dir / "brand.yaml").write_text(

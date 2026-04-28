@@ -91,7 +91,7 @@ def apply_footer(
 
     reader = pypdf.PdfReader(str(pdf_path))
     # clone_from preserves outlines, named destinations, and metadata that
-    # plain `add_page` would drop (Plan 3's PDF outline must survive
+    # plain `add_page` would drop (the PDF outline must survive
     # post-process).
     writer = pypdf.PdfWriter(clone_from=reader)
     total = len(writer.pages)

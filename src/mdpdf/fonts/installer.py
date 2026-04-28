@@ -1,7 +1,7 @@
 """Font downloader — install_font() downloads and verifies known fonts.
 
 Public API: ``install_font(name, target_dir=None) -> Path``. The known-font
-registry (_KNOWN_FONTS) ships with ``noto-sans-sc`` only in v2.0; future
+registry (_KNOWN_FONTS) ships with ``noto-sans-sc`` only in v0.2.1; future
 plans may extend it via config.
 
 P5-002: FontError uses `user_message=` not `message=`.

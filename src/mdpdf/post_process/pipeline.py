@@ -1,6 +1,6 @@
 """Post-process pipeline: 5 sequential passes applied after the render engine.
 
-Pass order (per spec §2.1.6):
+Pass order:
   1. Issuer card  — last page only
   2. Footer       — all pages
   3. L1 watermark — diagonal visible stamp (skipped when level == "L0" or "L2")

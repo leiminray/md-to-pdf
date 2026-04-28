@@ -1,6 +1,6 @@
 # Installation
 
-## From PyPI (v2.0.0)
+## From PyPI (v0.2.1.0)
 
 ```bash
 pip install md-to-pdf

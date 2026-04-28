@@ -1,6 +1,6 @@
-"""Locale-keyed string table for footer, header, and UI labels (spec §2.4).
+"""Locale-keyed string table for footer, header, and UI labels.
 
-Supported locales in v2.0: ``en`` (default) and ``zh-CN``.
+Supported locales in v0.2.1: ``en`` (default) and ``zh-CN``.
 """
 from __future__ import annotations
 

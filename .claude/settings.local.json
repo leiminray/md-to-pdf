@@ -13,7 +13,11 @@
       "Bash(git push *)",
       "Bash(git pull *)",
       "Bash(git merge *)",
-      "Bash(git checkout *)"
+      "Bash(git checkout *)",
+      "Bash(.venv/bin/pytest --collect-only -q)",
+      "Bash(.venv/bin/md-to-pdf --help)",
+      "Bash(.venv/bin/md-to-pdf brand *)",
+      "Bash(.venv/bin/md-to-pdf fonts *)"
     ]
   }
 }

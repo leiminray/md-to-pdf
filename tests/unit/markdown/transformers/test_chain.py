@@ -1,4 +1,4 @@
-"""Tests for the transformer chain runner (spec §2.1.3)."""
+"""Tests for the transformer chain runner."""
 from mdpdf.markdown.ast import Document, Heading, Paragraph, Text
 from mdpdf.markdown.transformers import Transformer, run_transformers
 

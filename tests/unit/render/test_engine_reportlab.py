@@ -1,6 +1,6 @@
-"""Tests for the ReportLab engine (Plan 1 minimal: headings + paragraphs).
+"""Tests for the ReportLab engine (minimal: headings + paragraphs).
 
-Plan 3 extends to tables, code, mermaid, images, lists, blockquotes.
+Tables, code, mermaid, images, lists, blockquotes are also supported.
 """
 from pathlib import Path
 
@@ -45,7 +45,7 @@ def test_unsupported_node_renders_placeholder(tmp_path: Path):
     """Unsupported node types render as `[unsupported: <type>]`.
 
     `CodeFence` is dispatched by Task 5 onward, so use `ThematicBreak`
-    here (still unsupported until Plan 4).
+    here (currently unsupported).
     """
     from mdpdf.markdown.ast import ThematicBreak
     doc = Document(children=[ThematicBreak()])
@@ -85,7 +85,7 @@ def test_engine_does_not_leave_partial_file_on_error(tmp_path: Path, monkeypatch
 
 
 def test_engine_renders_code_fence_no_placeholder(tmp_path: Path):
-    """CodeFence must NOT render as `[unsupported: CodeFence]` after Plan 3."""
+    """CodeFence must NOT render as `[unsupported: CodeFence]` ."""
     from mdpdf.markdown.ast import CodeFence, Document
     doc = Document(children=[CodeFence(lang="python", content="def f(): return 1\n")])
     engine = ReportLabEngine()

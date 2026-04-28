@@ -1,6 +1,6 @@
-"""PDF bookmark / outline generation (spec §2.1.5).
+"""PDF bookmark / outline generation.
 
-Consumes `Document.outline` (a list of OutlineEntry produced by Plan 2's
+Consumes `Document.outline` (a list of OutlineEntry produced by the
 `collect_outline` transformer) and emits ReportLab `bookmarkPage` +
 `addOutlineEntry` calls at heading flowable positions.
 

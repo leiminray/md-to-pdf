@@ -1,4 +1,4 @@
-"""AST transformer chain (spec §2.1.3).
+"""AST transformer chain.
 
 Transformers are pure functions `Document → Document`. The chain runner
 applies them in order; any transformer may return the same instance

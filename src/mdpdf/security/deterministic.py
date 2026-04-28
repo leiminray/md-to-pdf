@@ -1,4 +1,4 @@
-"""Determinism helpers (spec §2.3 + §2.1.6).
+"""Determinism helpers.
 
 These functions ensure that with ``--deterministic`` + ``SOURCE_DATE_EPOCH``,
 identical inputs produce bit-identical PDFs. The key primitives are:

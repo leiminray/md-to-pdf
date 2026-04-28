@@ -1,6 +1,6 @@
 """L2 golden: XMP metadata snapshot per fixture.
 
-Asserts that the 12 spec §5.3 XMP keys are present in the rendered PDF
+Asserts that the 12 specification XMP keys are present in the rendered PDF
 and stable across runs (when invariant inputs are pinned). Volatile
 keys (CreateDate / RenderId) are masked before snapshotting.
 
@@ -113,7 +113,7 @@ def test_xmp_snapshot(
                 source_type="path",
                 output=out,
                 # `auto` picks Kroki on the Golden CI job; the `pure` renderer
-                # is rejected in deterministic mode (Plan 4 P4-015), so any
+                # is rejected in deterministic mode (), so any
                 # fixture with a Mermaid block needs a deterministic-safe
                 # renderer at hand. Test skips when none is available.
                 mermaid_renderer="auto",

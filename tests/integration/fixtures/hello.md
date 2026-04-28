@@ -1,6 +1,6 @@
-# Walking Skeleton
+# Hello
 
-This is a minimal markdown document that exercises the v2.0 pipeline end to end.
+This is a minimal markdown document that exercises the pipeline end to end.
 
 ## Goals
 

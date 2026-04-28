@@ -1,7 +1,7 @@
 """ReportLab rendering engine.
 
-Plan 2 changes: accepts BrandStyles instead of getSampleStyleSheet().
-The Pipeline (Plan 2) constructs BrandStyles after brand resolution and
+Accepts BrandStyles for brand-aware rendering.
+The Pipeline  constructs BrandStyles after brand resolution and
 passes it to the engine via constructor injection.
 """
 from __future__ import annotations
@@ -57,9 +57,9 @@ class ReportLabEngine(RenderEngine):
     name = "reportlab"
 
     def __init__(self, brand_styles: BrandStyles | None = None) -> None:
-        # Allow None for back-compat with Plan 1 minimal tests, in which
+        # Allow None for back-compat with minimal tests, in which
         # case we synthesise a minimal default. Pipeline always passes
-        # brand_styles in Plan 2+.
+        # brand_styles when available.
         self._brand_styles = brand_styles or _default_styles()
 
     def render(self, document: Document, output: Path) -> int:
@@ -192,7 +192,7 @@ class ReportLabEngine(RenderEngine):
                 body=inner_flowables,
                 accent_color=str(accent.hexval()) if hasattr(accent, "hexval") else "#0066CC",
             )]
-        # Other AST node types remain Plan 3 territory until subsequent tasks land.
+        # Additional AST node types are handled by dedicated renderers.
         unsupported = ParagraphStyle(
             "Unsupported",
             parent=body,
@@ -222,7 +222,7 @@ class ReportLabEngine(RenderEngine):
 
 
 def _default_styles() -> BrandStyles:
-    """Minimal styles when no brand is supplied (Plan 1 walking-skeleton compat)."""
+    """Minimal styles when no brand is supplied (compat fallback)."""
     body = ParagraphStyle(
         name="Body", fontName="Helvetica", fontSize=11, leading=16, wordWrap="CJK",
     )

@@ -1,7 +1,7 @@
-"""Puppeteer (mmdc) Mermaid renderer (spec §2.1.4, §5.5).
+"""Puppeteer (mmdc) Mermaid renderer.
 
 Invokes the Node-side `mmdc` binary. Bootstrapping `mmdc` itself is the
-user's responsibility (or v1.8.9's `scripts/ensure_mermaid_deps.py` for
+user's responsibility (or 's `scripts/ensure_mermaid_deps.py` for
 existing users); this renderer only verifies it's on PATH and shells out.
 
 Sandboxing: `--puppeteerConfigFile` blocks network + extensions. `mmdc`
@@ -23,7 +23,7 @@ from mdpdf.renderers.mermaid_lint import lint_mermaid_source
 
 _TIMEOUT_S = 30.0
 _RENDERER_VERSION = "mmdc-v1"
-_THEME = "default"  # Plan 4 will wire brand.compliance.mermaid_theme here
+_THEME = "default"  # Wires brand.compliance.mermaid_theme here
 
 _PUPPETEER_CONFIG = {
     "args": [

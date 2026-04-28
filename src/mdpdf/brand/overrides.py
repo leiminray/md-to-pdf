@@ -1,4 +1,4 @@
-"""Field-level brand override mechanism (spec §3.6).
+"""Field-level brand override mechanism.
 
 CLI passes `--override key=value` (may repeat). Applied AFTER the brand
 payload is loaded as a dict but BEFORE pydantic validation, so type errors

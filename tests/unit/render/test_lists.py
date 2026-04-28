@@ -1,4 +1,4 @@
-"""Tests for list rendering (spec §2.1.5)."""
+"""Tests for list rendering."""
 from pathlib import Path
 
 from pypdf import PdfReader

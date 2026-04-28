@@ -1,6 +1,6 @@
-"""Click CLI (spec §6.1).
+"""Click CLI.
 
-Plan 1 implements only `render` (the no-subcommand default) and `version`.
+The CLI provides `render` (the no-subcommand default) and `version`.
 Other subcommands (`brand`, `fonts`, `doctor`) and flags (`--brand`,
 `--watermark-user`, `--legacy-brand`, etc.) land in plans 2-5.
 """
@@ -31,7 +31,7 @@ from mdpdf.logging import configure_logging
 from mdpdf.pipeline import Pipeline, RenderRequest, RenderResult, WatermarkOptions
 
 # Spec §6.1 exit-code table. Lookup walks `__mro__` so subclasses (e.g.,
-# Plan 3's MermaidError(RendererError) → exit 5) are matched correctly
+# MermaidError(RendererError) → exit 5) are matched correctly
 # regardless of dict insertion order.
 _EXIT_BY_CODE: dict[type[MdpdfError], int] = {
     PipelineError: 1,
@@ -39,12 +39,12 @@ _EXIT_BY_CODE: dict[type[MdpdfError], int] = {
     BrandError: 3,
     FontError: 4,
     RendererError: 5,
-    SecurityError: 3,  # treated as a config/policy issue in v2.0
+    SecurityError: 3,  # treated as a config/policy issue in v0.2.1
 }
 
 
 def _exit_code_for(err: MdpdfError) -> int:
-    """Map an MdpdfError to the spec §6.1 exit code via MRO walk."""
+    """Map an MdpdfError to the exit code via MRO walk."""
     for cls in type(err).__mro__:
         if cls in _EXIT_BY_CODE:
             return _EXIT_BY_CODE[cls]
@@ -54,7 +54,7 @@ def _exit_code_for(err: MdpdfError) -> int:
 class _DefaultRenderGroup(click.Group):
     """Group that routes to `render` when no subcommand is named.
 
-    The bare invocation `md-to-pdf <input.md> -o <output.pdf>` (spec §6.1)
+    The bare invocation `md-to-pdf <input.md> -o <output.pdf>`
     must work alongside `md-to-pdf version`. Click's stock Group treats the
     first non-option token as a subcommand name, so we inject `render` when
     no token matches a registered subcommand.
@@ -97,7 +97,7 @@ def main() -> None:
     "--template",
     default="generic",
     show_default=True,
-    help="Template id; v2.0 supports only 'generic'.",
+    help="Template id; supports only 'generic'.",
 )
 @click.option(
     "--locale",
@@ -166,7 +166,7 @@ def main() -> None:
     "--legacy-brand",
     is_flag=True,
     default=False,
-    help="Accept v1 brand_kits/-style layout.",
+    help="Accept legacy brand_kits/-style layout.",
 )
 @click.option(
     "--mermaid-renderer",
@@ -216,7 +216,7 @@ def render_cmd(
     json_output: bool,
 ) -> None:
     """Render INPUT_PATH (markdown) to a PDF."""
-    # In human mode keep the CLI quiet (spec §6.1: stdout is the output path
+    # In human mode keep the CLI quiet (stdout is the output path
     # only); JSON mode emits structured logs to stderr at INFO.
     configure_logging(
         json_output=json_output,
@@ -264,7 +264,7 @@ def render_cmd(
     try:
         result = pipeline.render(req)
     except MdpdfError as e:
-        # Print the structured error to stderr; map to exit code per spec §6.1.
+        # Print the structured error to stderr; map to exit code.
         click.echo(f"{e.code}: {e.user_message}", err=True)
         if e.technical_details:
             click.echo(f"  details: {e.technical_details}", err=True)
@@ -402,7 +402,7 @@ def brand_show(brand_pack_dir: Path) -> None:
     "--legacy-brand",
     is_flag=True,
     default=False,
-    help="Accept v1 brand_kits/-style layout.",
+    help="Accept legacy brand_kits/-style layout.",
 )
 def brand_validate(brand_path: Path, legacy_brand: bool) -> None:
     """Validate a brand pack against the v2 schema."""
@@ -439,7 +439,7 @@ def brand_validate(brand_path: Path, legacy_brand: bool) -> None:
 def brand_migrate(
     v1_path: Path, v2_output: Path, target_id: str | None, force: bool
 ) -> None:
-    """Convert a v1 brand_kits/-style layout into a v2 brand pack."""
+    """Convert a legacy brand_kits/-style layout into a v2 brand pack."""
     from mdpdf.brand.migrate import migrate_v1_to_v2
 
     try:

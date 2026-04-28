@@ -1,4 +1,4 @@
-"""Mermaid renderer chain selector (spec §2.1.4).
+"""Mermaid renderer chain selector.
 
 Auto-selection order:
   1. KROKI_URL env (or --kroki-url override) → Kroki

@@ -1,4 +1,4 @@
-"""Tests for locale overlay loading (spec §3.1)."""
+"""Tests for locale overlay loading."""
 from pathlib import Path
 
 from mdpdf.brand.schema import load_brand_pack

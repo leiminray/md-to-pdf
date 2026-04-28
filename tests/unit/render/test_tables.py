@@ -1,4 +1,4 @@
-"""Tests for content-weighted column-width algorithm (spec §2.1.5)."""
+"""Tests for content-weighted column-width algorithm."""
 from mdpdf.render.tables import compute_column_widths
 
 

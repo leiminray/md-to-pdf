@@ -1,6 +1,6 @@
 """Structured exception hierarchy.
 
-See spec §7.5. CLI maps `.code` → exit code; Python API just raises.
+CLI maps `.code` → exit code; Python API just raises.
 Each `.code` will correspond to a docs page at `docs/errors/<CODE>.md`
 once the error-docs directory lands (later plan).
 """

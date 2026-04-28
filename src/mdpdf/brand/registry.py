@@ -1,4 +1,4 @@
-"""3-layer brand registry (spec §3.5).
+"""3-layer brand registry.
 
 Resolution order (highest priority wins; layers do NOT merge — they replace):
   1. Explicit `--brand-pack-dir <path>` (if provided)

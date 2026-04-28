@@ -1,11 +1,11 @@
 """Promote a `## 目录` / `## Table of Contents` block to right after the H1.
 
-v1.8.9 parity: the TOC heading and its immediately-following block (a pipe
+parity: the TOC heading and its immediately-following block (a pipe
 table or paragraph) get cut from their original position and re-inserted
 at position 1 (right after the H1). Without an H1 in the document, the
 transformer is a no-op (defensive — TOC needs an anchor).
 
-Internal-PDF-link generation against headings is deferred to Plan 3
+Internal-PDF-link generation against headings is deferred
 (`render/outline.py` consumes the `collect_outline` map and rewrites the
 TOC table cells into `<link>` runs).
 """

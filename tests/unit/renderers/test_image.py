@@ -1,4 +1,4 @@
-"""Tests for the image renderer (spec §2.1.4)."""
+"""Tests for the image renderer."""
 from pathlib import Path
 
 import pytest

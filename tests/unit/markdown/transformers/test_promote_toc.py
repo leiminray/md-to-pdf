@@ -1,4 +1,4 @@
-"""Tests for promote_toc transformer (spec §2.1.3)."""
+"""Tests for promote_toc transformer."""
 from mdpdf.markdown.ast import (
     Document,
     Heading,

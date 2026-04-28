@@ -1,4 +1,4 @@
-"""Tests for the Pygments-backed code renderer (spec §2.1.4)."""
+"""Tests for the Pygments-backed code renderer."""
 from pathlib import Path
 
 from mdpdf.markdown.ast import CodeFence

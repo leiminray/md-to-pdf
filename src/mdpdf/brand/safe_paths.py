@@ -1,4 +1,4 @@
-"""Path-sandbox utilities (spec §3, §5.4).
+"""Path-sandbox utilities for brand resources.
 
 `safe_join(root, path)` resolves `path` (relative to `root`) and verifies
 the resolved real path stays inside `root`. Rejects:

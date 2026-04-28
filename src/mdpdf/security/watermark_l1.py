@@ -1,4 +1,4 @@
-"""L1 visible diagonal watermark overlay (spec §5.2).
+"""L1 visible diagonal watermark overlay.
 
 Strategy:
     1. Build a watermark PDF page (same dimensions as the target page) using
