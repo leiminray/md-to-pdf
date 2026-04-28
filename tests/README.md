@@ -1,36 +1,63 @@
-# md-to-pdf — internal tests
+# Tests
 
-For **maintainers / CI** only. End-user-facing usage stays in [`../SKILL.md`](../SKILL.md) and [`../README.md`](../README.md).
+Test suite for md-to-pdf — covers unit, integration, and golden tests.
+
+## Layout
+
+```
+tests/
+├── unit/              # Unit tests for individual modules
+│   ├── brand/         # Brand pack schema, registry, migration
+│   ├── cache/         # Atomic write + temp file management
+│   ├── fonts/         # Font manager + CJK detection
+│   ├── markdown/      # Parser + AST + transformers
+│   ├── render/        # ReportLab engine + flowables
+│   └── renderers/     # Mermaid, code, image renderers
+├── integration/       # End-to-end pipeline tests
+│   └── fixtures/      # Sample markdown files
+└── golden/            # Golden snapshot tests (AST, XMP, text-layer, layout)
+```
 
 ## Run
 
-From repository root (skill venv recommended):
+From repository root:
 
 ```bash
-.cursor/skills/md-to-pdf/.venv/bin/pip install -r .cursor/skills/md-to-pdf/requirements-dev.txt
-.cursor/skills/md-to-pdf/.venv/bin/python -m pytest .cursor/skills/md-to-pdf/tests/ -v
+# All tests
+.venv/bin/pytest -v
+
+# Just unit tests
+.venv/bin/pytest tests/unit -v
+
+# Just integration tests
+.venv/bin/pytest tests/integration -v
+
+# Coverage report
+.venv/bin/pytest --cov=src/mdpdf --cov-report=term-missing
 ```
 
-## Mermaid integration
+## Skipped tests
 
-`test_mermaid_renders_when_mmdc_available` runs when `mmdc` resolves on `PATH`; otherwise it **skips**. To force-skip (e.g. CI image without Node/Chromium):
+Some tests skip on platforms missing optional dependencies:
 
-```bash
-MDPDF_SKIP_MERMAID_TEST=1 .cursor/skills/md-to-pdf/.venv/bin/python -m pytest .cursor/skills/md-to-pdf/tests/ -v
-```
+- **libcairo** required for SVG rendering — install via `brew install cairo` (macOS) or `apt install libcairo2-dev` (Linux)
+- **KROKI_URL** required for Kroki Mermaid renderer integration tests — set if testing against a Kroki server
+- **Platform-specific golden tests** for deterministic SHA256 only run on Linux (canonical platform for byte-identical output)
 
-Review context: [`../references/mermaid-review-checklist.md`](../references/mermaid-review-checklist.md), [`../references/validation-scenarios.md`](../references/validation-scenarios.md).
+## Adding new tests
 
-## TOC bookmark map + watermark (unit)
+- **Unit tests**: Place under `tests/unit/<module>/` mirroring the source layout
+- **Integration tests**: Place under `tests/integration/` for end-to-end behavior
+- **Golden tests**: Use `tests/golden/conftest.py` helpers for AST/XMP/text-layer comparisons
 
-[`test_md_to_pdf_toc_watermark.py`](test_md_to_pdf_toc_watermark.py) — pure-Python checks for `collect_bookmark_plain_to_key`, `lookup_toc_row_bookmark_key`, and `resolve_watermark_text()`.
+Test naming: `test_<feature>_<scenario>` (e.g., `test_pipeline_renders_cjk_with_noto`).
 
-## CJK / line breaking (manual)
+## CI
 
-[`test_md_to_pdf_cjk.py`](test_md_to_pdf_cjk.py) + [`../fixtures/uat-cjk.md`](../fixtures/uat-cjk.md) cover text presence and merged-heading split. **Latin word boundaries** (e.g. `Alex Morgan` not broken mid-word) are not asserted in code: open `uat-cjk.pdf` and visually confirm wrapping in the long mixed paragraph and narrow table column.
+Tests run on every push via GitHub Actions:
+- Python 3.10–3.13
+- Ubuntu, macOS, Windows
+- Lint (ruff) + type check (mypy --strict)
+- Golden + UAT suite on Linux (canonical platform)
 
-## Header / footer vs body (fonts)
-
-Body uses embedded **Noto Sans SC** when `fonts/NotoSansSC-*.ttf` are present. The **Generated:** stamp and pypdf footer band use **`theme.yaml`** / English **`compliance.md`**. Chinese dates in the fixture appear in **body/table**, not in that stamp.
-
-**Future (product):** localized `Generated:` and CJK footer text would require theme + compliance changes and embedding a CJK-capable font in ReportLab / footer stamp paths (see [`../README.md`](../README.md)).
+See `.github/workflows/ci.yml` for the full matrix.
