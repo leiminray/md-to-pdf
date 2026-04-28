@@ -153,6 +153,7 @@ class OutlineEntry:
 class Document:
     children: list[Block] = field(default_factory=list)
     outline: list[OutlineEntry] = field(default_factory=list)
+    metadata: dict[str, object] = field(default_factory=dict)
 
 
 Inline = Text | Code | Emphasis | Strong | Link | Image
