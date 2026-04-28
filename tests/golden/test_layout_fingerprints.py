@@ -47,6 +47,7 @@ def test_layout_fingerprint(
     fixture: Path,
     tmp_path: Path,
     update_golden: bool,
+    strict_golden: bool,
     mock_mermaid: None,
 ) -> None:
     if not _HAS_CAIRO and "branch_ops" in fixture.name:
@@ -69,4 +70,4 @@ def test_layout_fingerprint(
 
     actual = extract_layout_json(out)
     baseline = BASELINES_DIR / "layout_fingerprint" / f"{fixture.stem}.json"
-    assert_or_update_golden(baseline, actual, update_golden)
+    assert_or_update_golden(baseline, actual, update_golden, strict=strict_golden)

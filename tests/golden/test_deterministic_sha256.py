@@ -70,6 +70,7 @@ def test_deterministic_sha256(
     fixture: Path,
     tmp_path: Path,
     update_golden: bool,
+    strict_golden: bool,
     mock_mermaid: None,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -98,4 +99,4 @@ def test_deterministic_sha256(
         pytest.skip(f"render failed for {fixture.name}: {exc}")
     actual = hashlib.sha256(out.read_bytes()).hexdigest()
     baseline = BASELINES_DIR / "sha256" / f"{fixture.stem}.txt"
-    assert_or_update_golden(baseline, actual + "\n", update_golden)
+    assert_or_update_golden(baseline, actual + "\n", update_golden, strict=strict_golden)

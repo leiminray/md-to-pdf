@@ -45,12 +45,22 @@ GOLDEN_ROOT = Path(__file__).parent
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
-    """Register --update-golden option."""
+    """Register --update-golden and --strict-golden options."""
     parser.addoption(
         "--update-golden",
         action="store_true",
         default=False,
         help="Overwrite committed golden snapshots with current output (for intentional changes).",
+    )
+    parser.addoption(
+        "--strict-golden",
+        action="store_true",
+        default=False,
+        help=(
+            "Treat missing golden baselines as failures instead of skips. "
+            "CI runs with this flag so a missing baseline cannot be silently ignored. "
+            "Local pytest runs without it remain lenient for incremental development."
+        ),
     )
 
 
@@ -63,6 +73,16 @@ def pytest_addoption(parser: pytest.Parser) -> None:
 def update_golden(request: pytest.FixtureRequest) -> bool:
     """Return True if --update-golden was passed on the command line."""
     return bool(request.config.getoption("--update-golden"))
+
+
+@pytest.fixture
+def strict_golden(request: pytest.FixtureRequest) -> bool:
+    """Return True if --strict-golden was passed (CI release-gate mode).
+
+    When True, missing baselines fail the test suite instead of being skipped —
+    closes the silent-skip loophole that lets baseline gaps slip through CI.
+    """
+    return bool(request.config.getoption("--strict-golden"))
 
 
 @pytest.fixture(scope="session")
@@ -227,6 +247,7 @@ def assert_golden_match(
     golden_path: Path,
     *,
     update: bool = False,
+    strict: bool = False,
 ) -> None:
     """Compare *actual* string to the committed golden file at *golden_path*.
 
@@ -234,6 +255,8 @@ def assert_golden_match(
         actual: The freshly-computed string representation.
         golden_path: Absolute path to the committed golden file.
         update: If True, overwrite the golden file and return without failing.
+        strict: If True, missing golden file → fail (CI default via --strict-golden).
+                If False, missing golden file → skip (local-dev default).
 
     On mismatch:
         - Writes *actual* to ``golden_path.with_suffix(golden_path.suffix + '.actual')``
@@ -241,7 +264,8 @@ def assert_golden_match(
 
     If the golden file does not exist:
         - With ``update=True``: writes the golden file and returns.
-        - Without ``update``: calls ``pytest.skip`` with regen instructions.
+        - With ``strict=True``: calls ``pytest.fail`` (CI release gate).
+        - Otherwise: calls ``pytest.skip`` with regen instructions.
     """
     if update:
         golden_path.parent.mkdir(parents=True, exist_ok=True)
@@ -249,10 +273,13 @@ def assert_golden_match(
         return
 
     if not golden_path.exists():
-        pytest.skip(
+        message = (
             f"Golden file missing: {golden_path}\n"
             f"Run pytest with --update-golden to generate it."
         )
+        if strict:
+            pytest.fail(message)
+        pytest.skip(message)
 
     expected = golden_path.read_text(encoding="utf-8")
     if actual == expected:
@@ -320,17 +347,28 @@ def mock_mermaid(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
 # ---------------------------------------------------------------------------
 
 
-def assert_or_update_golden(baseline_path: Path, actual: str, update: bool) -> None:
-    """Either rewrite the baseline (if `update`) or assert it matches `actual`."""
+def assert_or_update_golden(
+    baseline_path: Path, actual: str, update: bool, strict: bool = False
+) -> None:
+    """Either rewrite the baseline (if `update`) or assert it matches `actual`.
+
+    Missing-baseline behaviour:
+      - update=True   → write the baseline and return
+      - strict=True   → fail (CI release gate via --strict-golden)
+      - otherwise     → skip (local-dev default)
+    """
     if update:
         baseline_path.parent.mkdir(parents=True, exist_ok=True)
         baseline_path.write_text(actual, encoding="utf-8")
         return
     if not baseline_path.exists():
-        pytest.skip(
+        message = (
             f"Baseline missing: {baseline_path.relative_to(REPO_ROOT)}. "
             "Run `pytest tests/golden/ --update-golden` to create it."
         )
+        if strict:
+            pytest.fail(message)
+        pytest.skip(message)
     expected = baseline_path.read_text(encoding="utf-8")
     assert actual == expected, (
         f"Snapshot diverged from {baseline_path.relative_to(REPO_ROOT)}.\n"
