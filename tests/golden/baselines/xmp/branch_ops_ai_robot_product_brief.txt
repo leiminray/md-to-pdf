@@ -1,0 +1,12 @@
+pdf:Producer = 'md-to-pdf 2.0'
+xmp:CreateDate = '<DATE>'
+xmp:CreatorTool = 'md-to-pdf 2.0'
+dc:creator = ['None']
+dc:title = '分支运营 AI 机器人产品说明书'
+mdpdf:BrandId = ''
+mdpdf:BrandVersion = ''
+mdpdf:InputHash = 'd53c81c3e38ad3de56aace55e7236223bccdef5f0ddfa12e3ab10b57ad43f08d'
+mdpdf:RenderHost = '<HOST>'
+mdpdf:RenderId = '<UUID>'
+mdpdf:RenderUser = 'ci@example.com'
+mdpdf:WatermarkLevel = 'L1+L2'

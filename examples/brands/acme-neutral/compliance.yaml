@@ -1,0 +1,15 @@
+footer:
+  text: Internal · For evaluation only
+  show_page_numbers: true
+  show_render_date: true
+issuer:
+  name: ACME Neutral Reference Brand
+  lines:
+    - 'A neutral example brand for md-to-pdf documentation and tests.'
+    - 'Replace with your organisation details before production use.'
+watermark:
+  default_text: Internal
+  template: '{brand_name} // {user}'
+disclaimer: |
+  Reference brand pack distributed with md-to-pdf for documentation and test
+  purposes. Not intended to represent any real entity.

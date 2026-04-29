@@ -1,0 +1,34 @@
+# Neutral reference brand — chosen so docs and dual-brand tests have a brand
+# pack that does not mention any real company.
+colors:
+  primary: '#374151'
+  text: '#111827'
+  muted: '#6b7280'
+  accent: '#10b981'
+  background: '#ffffff'
+typography:
+  body:
+    family: NotoSansSC-Regular
+    size: 11
+    leading: 16
+    weights: [400]
+  heading:
+    family: NotoSansSC-Regular
+    weights: [700]
+  code:
+    family: Courier
+    size: 9
+    leading: 12
+    weights: [400]
+layout:
+  page_size: A4
+  margins:
+    top: 22
+    right: 18
+    bottom: 32
+    left: 18
+  header_height: 14
+  footer_height: 18
+assets:
+  logo: ./assets/logo.png
+  icon: ./assets/icon.png
