@@ -1,0 +1,20 @@
+schema_version: '2.0'
+id: acme-neutral
+name: ACME Neutral Reference Brand
+version: 1.0.0
+maintainer: examples@md-to-pdf.dev
+theme: ./theme.yaml
+compliance: ./compliance.yaml
+default_locale: en
+allows_inline_override: true
+allowed_override_fields:
+  - theme.colors.accent
+  - compliance.footer.text
+forbidden_override_fields:
+  - compliance.issuer
+  - security.watermark_min_level
+security:
+  watermark_min_level: L1+L2
+  allow_remote_assets: false
+audit:
+  retain_render_log: true

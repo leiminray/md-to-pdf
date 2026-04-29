@@ -1,0 +1,12 @@
+pdf:Producer = 'md-to-pdf 2.0'
+xmp:CreateDate = '<DATE>'
+xmp:CreatorTool = 'md-to-pdf 2.0'
+dc:creator = ['None']
+dc:title = 'Mermaid Noto + preset smoke fixture'
+mdpdf:BrandId = ''
+mdpdf:BrandVersion = ''
+mdpdf:InputHash = '564708a6594c12afaec5b723aa52faca8a2dea469610b8d0f2ab955dd806372d'
+mdpdf:RenderHost = '<HOST>'
+mdpdf:RenderId = '<UUID>'
+mdpdf:RenderUser = 'ci@example.com'
+mdpdf:WatermarkLevel = 'L1+L2'

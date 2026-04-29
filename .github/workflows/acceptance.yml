@@ -1,0 +1,73 @@
+# Release-blocking acceptance gate.
+#
+# This workflow is the machine-enforced counterpart to the spec acceptance
+# criteria. It runs on every PR and push, and is intended to be set as a
+# REQUIRED status check via GitHub branch-protection rules so that a PR
+# cannot merge while the audit is red.
+#
+# What it enforces:
+#   1. pytest tests/golden/ --strict-golden        — no missing/empty baselines
+#   2. scripts/check_acceptance.py                  — yaml ↔ artifacts ↔ spec
+#
+# Operator setup (one-time, manual):
+#   Settings → Branches → Branch protection rule for `main`:
+#     ☑ Require status checks to pass before merging
+#         Add: "Acceptance gate"
+#
+# See docs/acceptance/v0.2.1.yaml for the source of truth.
+
+name: Acceptance gate
+
+on:
+  pull_request:
+    branches: ["main"]
+  push:
+    branches: ["main", "chore/spec-compliance-gate"]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  acceptance:
+    name: Acceptance gate
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      # libcairo is required for the SVG-bearing branch_ops fixture; missing
+      # it would make several baselines pytest.skip in non-strict mode.
+      - name: Install libcairo
+        run: sudo apt-get update -y && sudo apt-get install -y libcairo2
+
+      - name: Install package + dev dependencies
+        run: pip install -e ".[dev]"
+
+      # Step 1: strict-golden ensures no baseline is silently missing.
+      # PYTHONUTF8 mirrors the main CI invocation for consistency.
+      - name: Golden tests (strict)
+        env:
+          PYTHONUTF8: "1"
+        run: python -m pytest tests/golden/ --strict-golden -v
+
+      # Step 2: structured audit — yaml present in repo matches reality,
+      # spec frontmatter matches yaml, extras matrix matches pyproject,
+      # example brands count met. --skip-pytest because step 1 already
+      # ran the strict pytest suite (and a re-run would just double the bill).
+      # --strict-platform makes Linux-only deterministic sha256 baselines a
+      # hard requirement on this runner.
+      - name: Acceptance audit
+        run: python scripts/check_acceptance.py --skip-pytest --strict-platform
+
+      # Step 3: audit script self-tests. If the audit tool itself regresses,
+      # everything above could pass while the gate is silently broken.
+      - name: Audit script unit tests
+        env:
+          PYTHONUTF8: "1"
+        run: python -m pytest tests/unit/test_check_acceptance.py -v

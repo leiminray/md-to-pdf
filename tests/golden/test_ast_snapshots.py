@@ -49,7 +49,7 @@ def _ast_snapshot(source: str) -> str:
     discover_uat_fixtures(),
     ids=lambda p: p.stem,
 )
-def test_ast_snapshot(fixture: Path, update_golden: bool) -> None:
+def test_ast_snapshot(fixture: Path, update_golden: bool, strict_golden: bool) -> None:
     actual = _ast_snapshot(fixture.read_text(encoding="utf-8"))
     baseline = BASELINES_DIR / "ast" / f"{fixture.stem}.txt"
-    assert_or_update_golden(baseline, actual, update_golden)
+    assert_or_update_golden(baseline, actual, update_golden, strict=strict_golden)

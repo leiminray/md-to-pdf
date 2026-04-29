@@ -73,6 +73,7 @@ def test_text_layer_snapshot(
     fixture: Path,
     tmp_path: Path,
     update_golden: bool,
+    strict_golden: bool,
     mock_mermaid: None,
 ) -> None:
     # Only the branch_ops fixture references an SVG; skip just that case
@@ -87,7 +88,10 @@ def test_text_layer_snapshot(
                 source=fixture,
                 source_type="path",
                 output=out,
-                mermaid_renderer="pure",
+                # `auto` lets the mock_mermaid fixture pick a deterministic-safe
+                # renderer (Kroki stub); `pure` would be rejected here under
+                # deterministic=True.
+                mermaid_renderer="auto",
                 deterministic=True,
             )
         )
@@ -100,4 +104,4 @@ def test_text_layer_snapshot(
     actual = "\n--- PAGE BREAK ---\n".join(pages_text) + "\n"
 
     baseline = BASELINES_DIR / "text_layer" / f"{fixture.stem}.txt"
-    assert_or_update_golden(baseline, actual, update_golden)
+    assert_or_update_golden(baseline, actual, update_golden, strict=strict_golden)

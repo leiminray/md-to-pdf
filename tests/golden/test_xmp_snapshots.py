@@ -98,6 +98,7 @@ def test_xmp_snapshot(
     fixture: Path,
     tmp_path: Path,
     update_golden: bool,
+    strict_golden: bool,
     mock_mermaid: None,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -126,4 +127,4 @@ def test_xmp_snapshot(
 
     actual = _xmp_snapshot(out)
     baseline = BASELINES_DIR / "xmp" / f"{fixture.stem}.txt"
-    assert_or_update_golden(baseline, actual, update_golden)
+    assert_or_update_golden(baseline, actual, update_golden, strict=strict_golden)

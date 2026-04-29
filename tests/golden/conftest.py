@@ -45,12 +45,22 @@ GOLDEN_ROOT = Path(__file__).parent
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
-    """Register --update-golden option."""
+    """Register --update-golden and --strict-golden options."""
     parser.addoption(
         "--update-golden",
         action="store_true",
         default=False,
         help="Overwrite committed golden snapshots with current output (for intentional changes).",
+    )
+    parser.addoption(
+        "--strict-golden",
+        action="store_true",
+        default=False,
+        help=(
+            "Treat missing golden baselines as failures instead of skips. "
+            "CI runs with this flag so a missing baseline cannot be silently ignored. "
+            "Local pytest runs without it remain lenient for incremental development."
+        ),
     )
 
 
@@ -63,6 +73,16 @@ def pytest_addoption(parser: pytest.Parser) -> None:
 def update_golden(request: pytest.FixtureRequest) -> bool:
     """Return True if --update-golden was passed on the command line."""
     return bool(request.config.getoption("--update-golden"))
+
+
+@pytest.fixture
+def strict_golden(request: pytest.FixtureRequest) -> bool:
+    """Return True if --strict-golden was passed (CI release-gate mode).
+
+    When True, missing baselines fail the test suite instead of being skipped —
+    closes the silent-skip loophole that lets baseline gaps slip through CI.
+    """
+    return bool(request.config.getoption("--strict-golden"))
 
 
 @pytest.fixture(scope="session")
@@ -120,14 +140,27 @@ class RenderedPdfFactory:
 
 
 def discover_uat_fixtures() -> list[Path]:
-    """All fixtures/uat-*.md plus the comprehensive branch_ops fixture.
+    """All spec-required fixtures for the v1-parity golden gate.
 
-    Glob-discovered so the parity gate auto-picks up new fixtures.
+    Includes:
+      - every ``fixtures/uat-*.md`` (auto-globbed)
+      - the spec §7.2 mermaid-specific fixtures (named explicitly because they
+        do not follow the ``uat-*`` convention but are part of the parity gate)
+      - the spec §7.2.1 comprehensive UAT fixture
+
+    Acceptance contract: keep this list in sync with
+    ``docs/acceptance/v0.2.1.yaml::golden_baselines.fixtures``. The
+    spec-drift check (``scripts/check_acceptance.py``) catches divergence.
     """
     fixtures = sorted(FIXTURES_DIR.glob("uat-*.md"))
-    branch_ops = FIXTURES_DIR / "branch_ops_ai_robot_product_brief.md"
-    if branch_ops.exists():
-        fixtures.append(branch_ops)
+    extra_named = [
+        FIXTURES_DIR / "fenced-mermaid-smoke.md",
+        FIXTURES_DIR / "mermaid-noto-presets.md",
+        FIXTURES_DIR / "branch_ops_ai_robot_product_brief.md",
+    ]
+    for path in extra_named:
+        if path.exists():
+            fixtures.append(path)
     return fixtures
 
 
@@ -227,6 +260,7 @@ def assert_golden_match(
     golden_path: Path,
     *,
     update: bool = False,
+    strict: bool = False,
 ) -> None:
     """Compare *actual* string to the committed golden file at *golden_path*.
 
@@ -234,6 +268,8 @@ def assert_golden_match(
         actual: The freshly-computed string representation.
         golden_path: Absolute path to the committed golden file.
         update: If True, overwrite the golden file and return without failing.
+        strict: If True, missing golden file → fail (CI default via --strict-golden).
+                If False, missing golden file → skip (local-dev default).
 
     On mismatch:
         - Writes *actual* to ``golden_path.with_suffix(golden_path.suffix + '.actual')``
@@ -241,7 +277,8 @@ def assert_golden_match(
 
     If the golden file does not exist:
         - With ``update=True``: writes the golden file and returns.
-        - Without ``update``: calls ``pytest.skip`` with regen instructions.
+        - With ``strict=True``: calls ``pytest.fail`` (CI release gate).
+        - Otherwise: calls ``pytest.skip`` with regen instructions.
     """
     if update:
         golden_path.parent.mkdir(parents=True, exist_ok=True)
@@ -249,10 +286,13 @@ def assert_golden_match(
         return
 
     if not golden_path.exists():
-        pytest.skip(
+        message = (
             f"Golden file missing: {golden_path}\n"
             f"Run pytest with --update-golden to generate it."
         )
+        if strict:
+            pytest.fail(message)
+        pytest.skip(message)
 
     expected = golden_path.read_text(encoding="utf-8")
     if actual == expected:
@@ -295,8 +335,14 @@ def _real_png_bytes() -> bytes:
 
 @pytest.fixture
 def mock_mermaid(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
-    """Make the mermaid renderer chain return a real 1x1 PNG so golden tests
-    don't depend on Kroki / mmdc / mermaid-py being installed.
+    """Stub the mermaid renderer chain so golden tests run without Kroki / mmdc /
+    mermaid-py installed.
+
+    Patches three renderers so the same fake 1x1 PNG is returned regardless of
+    which one the chain selects. Critically, the Kroki renderer is also stubbed
+    AND a placeholder ``KROKI_URL`` is set so tests that use ``deterministic=True``
+    on fixtures containing Mermaid blocks can still resolve a deterministic-safe
+    renderer (the chain rejects "pure" under deterministic mode).
     """
     png_bytes = _real_png_bytes()
 
@@ -305,13 +351,25 @@ def mock_mermaid(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
         def to_png(source: str) -> bytes:
             return png_bytes
 
+    def _fake_kroki_render(self, source, ctx):  # noqa: ANN001 — matches Renderer ABC
+        out = ctx.cache_root / "mermaid" / "fake.png"
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_bytes(png_bytes)
+        return out
+
     monkeypatch.setattr(
         "mdpdf.renderers.mermaid_pure._import_mermaid", lambda: _FakeMermaid
     )
     monkeypatch.setattr(
         "mdpdf.renderers.mermaid_puppeteer._find_mmdc", lambda: None
     )
-    monkeypatch.delenv("KROKI_URL", raising=False)
+    # Stub Kroki HTTP path — the renderer's render() writes the PNG itself.
+    monkeypatch.setattr(
+        "mdpdf.renderers.mermaid_kroki.KrokiMermaidRenderer.render",
+        _fake_kroki_render,
+    )
+    # Set a placeholder URL so the chain selects Kroki (deterministic-safe).
+    monkeypatch.setenv("KROKI_URL", "http://kroki.invalid.local")
     yield
 
 
@@ -320,17 +378,28 @@ def mock_mermaid(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
 # ---------------------------------------------------------------------------
 
 
-def assert_or_update_golden(baseline_path: Path, actual: str, update: bool) -> None:
-    """Either rewrite the baseline (if `update`) or assert it matches `actual`."""
+def assert_or_update_golden(
+    baseline_path: Path, actual: str, update: bool, strict: bool = False
+) -> None:
+    """Either rewrite the baseline (if `update`) or assert it matches `actual`.
+
+    Missing-baseline behaviour:
+      - update=True   → write the baseline and return
+      - strict=True   → fail (CI release gate via --strict-golden)
+      - otherwise     → skip (local-dev default)
+    """
     if update:
         baseline_path.parent.mkdir(parents=True, exist_ok=True)
         baseline_path.write_text(actual, encoding="utf-8")
         return
     if not baseline_path.exists():
-        pytest.skip(
+        message = (
             f"Baseline missing: {baseline_path.relative_to(REPO_ROOT)}. "
             "Run `pytest tests/golden/ --update-golden` to create it."
         )
+        if strict:
+            pytest.fail(message)
+        pytest.skip(message)
     expected = baseline_path.read_text(encoding="utf-8")
     assert actual == expected, (
         f"Snapshot diverged from {baseline_path.relative_to(REPO_ROOT)}.\n"

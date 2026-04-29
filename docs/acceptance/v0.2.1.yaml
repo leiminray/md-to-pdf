@@ -1,0 +1,117 @@
+# Acceptance criteria for md-to-pdf v0.2.1.
+#
+# This file is the single source of truth for "is this release ready?".
+# Every entry below is a machine-verifiable promise. CI runs
+# `scripts/check_acceptance.py` against this file; failure blocks merge/release.
+#
+# Updating rules:
+#   - Adding a new fixture → add it to `golden_baselines.fixtures` and update
+#     the matching spec frontmatter in docs/superpowers/specs/.
+#   - Removing a baseline layer → must justify in the PR description.
+#   - Modifying `extras_matrix` or `example_brands.min_count` → also update the
+#     spec section it derives from.
+#
+# Spec source: docs/superpowers/specs/2026-04-26-md-to-pdf-v2.0-foundation-design.md
+# Related skill: scripts/check_acceptance.py
+
+schema_version: "1.0"
+target_version: "0.2.1"
+
+# §7.2 / §7.2.1 — golden test 4-layer matrix.
+# Each fixture must have a baseline file at every required layer; missing or
+# empty files fail the audit (no more silent skips).
+golden_baselines:
+  layers:
+    - id: ast
+      directory: tests/golden/baselines/ast
+      extension: .txt
+      description: AST snapshot from markdown-it-py + transformers
+    - id: text_layer
+      directory: tests/golden/baselines/text_layer
+      extension: .txt
+      description: Per-page extracted text via pypdf
+    - id: xmp
+      directory: tests/golden/baselines/xmp
+      extension: .txt
+      description: pikepdf XMP metadata snapshot (volatile fields masked)
+    - id: layout_fingerprint
+      directory: tests/golden/baselines/layout_fingerprint
+      extension: .json
+      description: Per-page bbox sha256 list via pdfplumber
+
+  fixtures:
+    - name: uat-en
+      source: fixtures/uat-en.md
+      required_layers: [ast, text_layer, xmp, layout_fingerprint]
+    - name: uat-zh
+      source: fixtures/uat-zh.md
+      required_layers: [ast, text_layer, xmp, layout_fingerprint]
+    - name: uat-cjk
+      source: fixtures/uat-cjk.md
+      required_layers: [ast, text_layer, xmp, layout_fingerprint]
+    - name: uat-table
+      source: fixtures/uat-table.md
+      required_layers: [ast, text_layer, xmp, layout_fingerprint]
+    - name: fenced-mermaid-smoke
+      source: fixtures/fenced-mermaid-smoke.md
+      required_layers: [ast, text_layer, xmp, layout_fingerprint]
+    - name: mermaid-noto-presets
+      source: fixtures/mermaid-noto-presets.md
+      required_layers: [ast, text_layer, xmp, layout_fingerprint]
+    - name: branch_ops_ai_robot_product_brief
+      source: fixtures/branch_ops_ai_robot_product_brief.md
+      required_layers: [ast, text_layer, xmp, layout_fingerprint]
+
+# §2.3 / §7.2.1 — deterministic-mode sha256 baselines.
+# These prove "same input + same env + same user → bit-identical PDF".
+deterministic_sha256:
+  directory: tests/golden/baselines/sha256
+  extension: .txt
+  fixtures:
+    - uat-en
+    - branch_ops_ai_robot_product_brief
+
+# §6.3 — install matrix. pyproject.toml [project.optional-dependencies] must
+# expose at least these extras names. Description-only; the audit only checks
+# the keyset.
+extras_matrix:
+  required:
+    - dev
+    - docs
+    - mermaid-pure
+  recommended:
+    # spec §6.3 promises these; CJK currently bundled (see deviation report)
+    # so cjk-sc and puppeteer/all are tracked here as planned, not required.
+    - cjk-sc
+    - puppeteer
+    - all
+
+# §7.2.1 brand integration scenarios require >= 2 distinct example brands.
+example_brands:
+  directory: examples/brands
+  min_count: 2
+
+# §7.3 — pinned Kroki container SHA. Recorded here so any drift between
+# ci.yml and the documented contract is visible in audit history. Bumping
+# this value requires regenerating affected golden baselines in the same PR.
+kroki_pin:
+  tag: "0.30.1"
+  digest: "sha256:4cfb9d48a1d9e18c346d505fd85c9ad16121d1691602b0e580db904b00c04320"
+  pinned_in: .github/workflows/ci.yml
+
+# Pytest invocation that the audit script must run successfully.
+# --strict-golden converts missing-baseline skips into hard failures.
+# Using `python -m pytest` (rather than bare `pytest`) so the command works
+# even when pytest is not on PATH but is importable in the active venv.
+pytest_strict_command:
+  - python
+  - -m
+  - pytest
+  - tests/golden/
+  - --strict-golden
+  - -q
+
+# Files that, if modified, MUST also touch acceptance.yaml in the same PR.
+# Enforced by check_acceptance.py spec-drift check (Phase 2).
+spec_files:
+  - docs/superpowers/specs/2026-04-26-md-to-pdf-v2.0-foundation-design.md
