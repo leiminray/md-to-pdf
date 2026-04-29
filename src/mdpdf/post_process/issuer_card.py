@@ -25,7 +25,7 @@ from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfgen import canvas as rl_canvas
 
-from mdpdf.fonts.manager import FontManager, cjk_chars_present
+from mdpdf.fonts.manager import FontManager, cjk_chars_present, select_cjk_font_for_text
 
 _BUNDLED_FONTS_DIR = Path(__file__).resolve().parents[3] / "fonts"
 
@@ -37,20 +37,20 @@ def _hex_to_color(hex_color: str) -> colors.Color:
 
 
 def _select_text_font(text: str, default: str = "Helvetica") -> tuple[str, str]:
-    """Return (regular_font, bold_font) names. Falls back to a CJK font when the
-    text contains CJK characters or fullwidth punctuation that Helvetica lacks.
+    """Return (regular_font, bold_font) names. Picks the best CJK font for the
+    text's actual scripts (Korean → AppleSDGothicNeo, Japanese → Hiragino, etc.).
     """
     if not cjk_chars_present(text):
         return default, "Helvetica-Bold"
     fm = FontManager(bundled_dir=_BUNDLED_FONTS_DIR)
     with contextlib.suppress(Exception):
         fm.register_for_text(text)
+    chosen = select_cjk_font_for_text(text)
+    if chosen is None:
+        return default, "Helvetica-Bold"
     registered = pdfmetrics.getRegisteredFontNames()
-    for cand in ("NotoSansSC-Regular", "NotoSansCJK-Regular", "PingFang"):
-        if cand in registered:
-            bold_cand = cand.replace("-Regular", "-Bold")
-            return cand, bold_cand if bold_cand in registered else cand
-    return default, "Helvetica-Bold"
+    bold_cand = chosen.replace("-Regular", "-Bold")
+    return chosen, bold_cand if bold_cand in registered else chosen
 
 
 def _build_qr_png(payload: str, *, box_size: int = 4) -> bytes | None:

@@ -20,31 +20,23 @@ import tempfile
 from pathlib import Path
 
 import pypdf
-from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfgen import canvas as rl_canvas
 
-from mdpdf.fonts.manager import FontManager, cjk_chars_present
+from mdpdf.fonts.manager import FontManager, cjk_chars_present, select_cjk_font_for_text
 from mdpdf.security.contrast import enforce_min_contrast
 
 _BUNDLED_FONTS_DIR = Path(__file__).resolve().parents[3] / "fonts"
 
 
 def _select_watermark_font(text: str) -> str:
-    """Return a font name that has glyphs for *text*. Falls back to a
-    CJK-capable font if non-ASCII (CJK / fullwidth punctuation / emoji)
-    is present.
-    """
+    """Return a font name that has glyphs for *text* (script-aware fallback)."""
     if not cjk_chars_present(text):
         return "Helvetica"
     fm = FontManager(bundled_dir=_BUNDLED_FONTS_DIR)
     import contextlib
     with contextlib.suppress(Exception):
         fm.register_for_text(text)
-    registered = pdfmetrics.getRegisteredFontNames()
-    for cand in ("NotoSansSC-Regular", "NotoSansCJK-Regular", "PingFang"):
-        if cand in registered:
-            return cand
-    return "Helvetica"
+    return select_cjk_font_for_text(text) or "Helvetica"
 
 # Spec §5.2 defaults
 _DEFAULT_COLOR = "#EBEFF0"

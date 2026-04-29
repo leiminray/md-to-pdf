@@ -1,5 +1,5 @@
-■■■■ AI ■■■■■■■■
-■■
+分支运营 AI 机器人产品说明书
+目录
 ■■
 ■■
 1. ■■■■
@@ -15,14 +15,14 @@
 6. ■■■
 20
 [unsupported: ThematicBreak]
-1. Market Positioning / ■■■■
+1. Market Positioning / 市场定位
 1.1 Executive Summary
 The Branch Operations AI Robot (BOAR) is an enterprise-grade automation platform that
 combines natural language processing, computer vision, and robotic process automation to
 streamline branch banking operations. This document covers the full product specification for
 v1.0.0 release targeting Q3 2026.
-■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ ■■■■■■■■■■■■■■ 200 ■
-■■■■■■■■■■■■■■■■■
+本产品面向大中型商业银行的网点运营场景，通过人工智能技术实现业务流程的自动化与 智能化。
+目标客户群体包括拥有 200 个以上网点的全国性银行及区域性银行。
 1.2 Competitive Landscape
 Current market analysis shows three primary competitors:
 1
@@ -69,7 +69,7 @@ Government
 > 200
 Regulatory reporting
 [unsupported: ThematicBreak]
-2. ■■■■ / System Architecture
+2. 系统架构 / System Architecture
 2.1 Architecture Overview
 The system follows a microservices architecture with four primary layers:
 Figure 1: High-level system architecture showing the four service layers.
@@ -87,7 +87,7 @@ Page 2 of 11
 --- PAGE BREAK ---
 Figure 2: Full-resolution architecture diagram (auto-downsampled for PDF).
 [unsupported: ThematicBreak]
-3. ■■■■ / Technical Specifications
+3. 技术规格 / Technical Specifications
 3.1 Core Technology Stack
 Component
 Technology
@@ -284,7 +284,7 @@ kubectl rollout status deployment/boar-workflow-orchestrator \
  --namespace "${NAMESPACE}" --timeout=300s
 echo "Deployment complete."
 [unsupported: ThematicBreak]
-4. API ■■ / API Design
+4. API 设计 / API Design
 4.1 REST API Overview
 The BOAR API follows REST conventions with JSON request/response bodies:
  json
@@ -345,7 +345,7 @@ The API documentation references the BOAR system icon for branding: [Image]
 The complete system flow is documented in the SVG diagram:
 Figure 3: End-to-end system flow from customer interaction to audit completion.
 [unsupported: ThematicBreak]
-5. ■■■■ / Deployment Plan
+5. 部署计划 / Deployment Plan
 5.1 Rollout Phases
 The deployment plan is structured in three phases:
 1
@@ -409,14 +409,15 @@ Storage
 Network
 10 Gbps
 25 Gbps
-5.3 ■■■■■■■■■■■ / Japanese Kana Fallback Test
-■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ Noto Sans SC ■■■■■■■■■■
-■■■■■■■■■■■■■■■■■■■■■■■ ■■■■■■■■■■■■■■■■■■■■■■■■■■
-■■■■■■■■■■■■■■■■■■■■■■■■■■■■
-■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ Traditional Chinese content should render
-correctly alongside Simplified Chinese.
+5.3 日语フォールバック検証 / Japanese Kana Fallback Test
+このセクションでは、日本語仮名文字のフォールバックレンダリングを検証します。 Noto Sans
+SC フォントが日本語仮名文字に対してフォールバックとして機能することを 確認するために、以
+下のサンプルテキストを使用します：
+こんにちは世界。これはテストです。アイウエオカキクケコ。
+繁體中文測試：這是一個測試段落，用於驗證繁體中文的渲染效果。 Traditional Chinese content
+should render correctly alongside Simplified Chinese.
 [unsupported: ThematicBreak]
-6. ■■■ / Roadmap
+6. 路线图 / Roadmap
 6.1 v1.0 Feature List
 The following features are confirmed for v1.0 release:
 
@@ -433,13 +434,13 @@ The following features are confirmed for v1.0 release:
 ✓ REST API with TypeScript SDK
 6.2 v0.2.1 Roadmap
 Planned for v0.2.1 (target Q2 2027):
-Feature
-Priority
-Effort
 Confidential — 
 Page 10 of 11
 
 --- PAGE BREAK ---
+Feature
+Priority
+Effort
 Video KYC integration
 High
 L

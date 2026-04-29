@@ -57,12 +57,95 @@ def cjk_chars_present(text: str) -> bool:
 
 
 _DEFAULT_SYSTEM_FALLBACKS_CJK = [
+    # Universal coverage — prefer if available (covers Latin + Chinese + Japanese + Korean).
     "/Library/Fonts/Arial Unicode.ttf",
-    "/System/Library/Fonts/PingFang.ttc",
-    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
     "/usr/share/fonts/noto/NotoSansCJK-Regular.ttc",
+    # Korean
+    "/System/Library/Fonts/AppleSDGothicNeo.ttc",
+    "C:/Windows/Fonts/malgun.ttf",
+    # Chinese
+    "/System/Library/Fonts/PingFang.ttc",
+    "/System/Library/Fonts/Hiragino Sans GB.ttc",
+    "/System/Library/Fonts/STHeiti Light.ttc",
     "C:/Windows/Fonts/msyh.ttc",
+    # Japanese
+    "/System/Library/Fonts/Hiragino Sans.ttc",
+    "C:/Windows/Fonts/yugothm.ttc",
+    # Generic Unicode fallback
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
 ]
+
+
+def korean_chars_present(text: str) -> bool:
+    """True if *text* contains Hangul syllables (U+AC00-D7AF) or Jamo."""
+    return any(
+        0xAC00 <= ord(c) <= 0xD7AF or 0x1100 <= ord(c) <= 0x11FF or 0x3130 <= ord(c) <= 0x318F
+        for c in text
+    )
+
+
+def japanese_kana_present(text: str) -> bool:
+    """True if *text* contains Hiragana or Katakana (no Han)."""
+    return any(0x3040 <= ord(c) <= 0x30FF for c in text)
+
+
+def emoji_present(text: str) -> bool:
+    """True if *text* contains emoji or pictograph characters."""
+    for c in text:
+        cp = ord(c)
+        if (
+            0x1F300 <= cp <= 0x1F9FF      # Misc Symbols & Pictographs
+            or 0x1FA00 <= cp <= 0x1FAFF   # Symbols & Pictographs Ext-A
+            or 0x2600 <= cp <= 0x26FF     # Misc Symbols
+            or 0x2700 <= cp <= 0x27BF     # Dingbats
+            or 0x1F1E6 <= cp <= 0x1F1FF   # Regional Indicator (flags)
+        ):
+            return True
+    return False
+
+
+def select_cjk_font_for_text(text: str) -> str | None:
+    """Return the registered font name best suited for *text*'s scripts.
+
+    Returns None when no CJK or emoji is needed. Order of preference:
+    - Emoji → NotoEmoji-Regular (bundled, monochrome)
+    - Korean → AppleSDGothicNeo / NotoSansKR / Malgun / Arial Unicode
+    - Japanese kana → Hiragino Sans / NotoSansJP / Arial Unicode
+    - Chinese/general → NotoSansSC / Hiragino Sans GB / PingFang / Arial Unicode
+    """
+    if not cjk_chars_present(text):
+        return None
+    registered = pdfmetrics.getRegisteredFontNames()
+
+    def _first(*names: str) -> str | None:
+        for n in names:
+            if n in registered:
+                return n
+        return None
+
+    if emoji_present(text):
+        em = _first("NotoEmoji-Regular")
+        if em:
+            return em
+    if korean_chars_present(text):
+        kr = _first(
+            "AppleSDGothicNeo", "NotoSansKR-Regular", "malgun",
+            "Arial Unicode",
+        )
+        if kr:
+            return kr
+    if japanese_kana_present(text) and not any(0x4E00 <= ord(c) <= 0x9FFF for c in text):
+        jp = _first(
+            "Hiragino Sans", "NotoSansJP-Regular", "yugothm",
+            "Arial Unicode",
+        )
+        if jp:
+            return jp
+    sc = _first(
+        "NotoSansSC-Regular", "Hiragino Sans GB", "PingFang",
+        "STHeiti Light", "msyh", "Arial Unicode", "NotoSansCJK-Regular",
+    )
+    return sc
 
 
 class FontManager:
@@ -85,22 +168,28 @@ class FontManager:
         self.has_cjk_glyphs = False
 
     def register_for_text(self, text: str) -> None:
-        """Register fonts sufficient to render `text`. Raises FontError on CJK gap."""
-        # Always try to register brand + bundled fonts (cheap if they exist).
+        """Register fonts sufficient to render `text`. Raises FontError on CJK gap.
+
+        Registers ALL available system CJK fonts (not just the first one that
+        succeeds) so callers can pick the right font per script via
+        `select_cjk_font_for_text(text)`.
+        """
         self._register_dir(self.brand_fonts_dir)
         self._register_dir(self.bundled_dir)
-        if cjk_chars_present(text) and not self.has_cjk_glyphs:
-            # No brand or bundled CJK font found; try system fallbacks.
+        if cjk_chars_present(text):
+            # Register every system CJK font we can find — Korean, Japanese,
+            # Chinese all need different fonts in the worst case.
             for sys_path_str in self.system_fallbacks:
                 sys_path = Path(sys_path_str)
                 if not sys_path.exists():
                     continue
+                name = sys_path.stem
+                if name in self.registered_names:
+                    continue
                 try:
-                    name = sys_path.stem
                     pdfmetrics.registerFont(TTFont(name, str(sys_path)))
                     self.registered_names.append(name)
                     self.has_cjk_glyphs = True
-                    break
                 except TTFError:
                     continue
         if cjk_chars_present(text) and not self.has_cjk_glyphs:
@@ -109,8 +198,8 @@ class FontManager:
                 user_message=(
                     "input contains CJK characters but no CJK-capable font is "
                     "available in brand pack, bundled fonts/, or system fallbacks. "
-                    "Install Noto Sans CJK or run via  (scripts/md_to_pdf.py) "
-                    "until brand-pack font auto-discovery improves."
+                    "Install Noto Sans CJK or place a TTF in your brand pack's "
+                    "assets/fonts/ directory."
                 ),
             )
 

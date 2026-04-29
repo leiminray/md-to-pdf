@@ -15,10 +15,9 @@ from pathlib import Path
 import pypdf
 from reportlab.lib import colors
 from reportlab.lib.units import mm
-from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfgen import canvas as rl_canvas
 
-from mdpdf.fonts.manager import FontManager, cjk_chars_present
+from mdpdf.fonts.manager import FontManager, cjk_chars_present, select_cjk_font_for_text
 from mdpdf.i18n.strings import lookup
 
 _BUNDLED_FONTS_DIR = Path(__file__).resolve().parents[3] / "fonts"
@@ -107,10 +106,9 @@ def apply_footer(
         fm = FontManager(bundled_dir=_BUNDLED_FONTS_DIR)
         with contextlib.suppress(Exception):
             fm.register_for_text(sample_text)
-        for cand in ("NotoSansSC-Regular", "NotoSansCJK-Regular", "PingFang"):
-            if cand in pdfmetrics.getRegisteredFontNames():
-                font_name = cand
-                break
+        chosen = select_cjk_font_for_text(sample_text)
+        if chosen is not None:
+            font_name = chosen
 
     reader = pypdf.PdfReader(str(pdf_path))
     # clone_from preserves outlines, named destinations, and metadata that

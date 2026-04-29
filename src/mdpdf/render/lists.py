@@ -22,6 +22,35 @@ from mdpdf.markdown.ast import (
 )
 
 
+def _script_aware_style(text: str, base: ParagraphStyle) -> ParagraphStyle:
+    """Swap fontName to a CJK font when text contains scripts the base font lacks."""
+    from mdpdf.fonts.manager import select_cjk_font_for_text
+    chosen = select_cjk_font_for_text(text)
+    if chosen is None or chosen == base.fontName:
+        return base
+    return ParagraphStyle(
+        name=f"{base.name}_{chosen}",
+        parent=base,
+        fontName=chosen,
+    )
+
+
+def _inline_plain(children: list[Inline]) -> str:
+    """Flatten inline AST to plain text for script detection."""
+    parts: list[str] = []
+    for c in children:
+        match c:
+            case Text(content=t):
+                parts.append(t)
+            case Code(content=t):
+                parts.append(t)
+            case Strong(children=cs) | Emphasis(children=cs) | Link(children=cs):
+                parts.append(_inline_plain(cs))
+            case _:
+                pass
+    return "".join(parts)
+
+
 def ast_list_to_flowable(lst: ListBlock, body: ParagraphStyle) -> Flowable:
     """Convert an AST ListBlock to a ReportLab ListFlowable, recursing for nests."""
     items: list[RLListItem] = []
@@ -29,8 +58,9 @@ def ast_list_to_flowable(lst: ListBlock, body: ParagraphStyle) -> Flowable:
         children_flowables: list[Flowable] = []
         for child in ast_item.children:
             if isinstance(child, Paragraph):
+                style = _script_aware_style(_inline_plain(child.children), body)
                 children_flowables.append(
-                    RLParagraph(_inline_to_html(child.children), body)
+                    RLParagraph(_inline_to_html(child.children), style)
                 )
             elif isinstance(child, ListBlock):
                 children_flowables.append(ast_list_to_flowable(child, body))
