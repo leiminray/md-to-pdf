@@ -43,8 +43,12 @@ jobs:
 
       # libcairo is required for the SVG-bearing branch_ops fixture; missing
       # it would make several baselines pytest.skip in non-strict mode.
-      - name: Install libcairo
-        run: sudo apt-get update -y && sudo apt-get install -y libcairo2
+      # fonts-noto-cjk provides Korean/Japanese/Chinese glyph coverage so
+      # CJK fixtures render the same as the canonical baselines.
+      - name: Install libcairo + Noto CJK fonts
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y libcairo2 fonts-noto-cjk
 
       - name: Install package + dev dependencies
         run: pip install -e ".[dev]"
