@@ -132,10 +132,38 @@ def test_baseline_empty_fails(tmp_path: Path, audit: Any, monkeypatch: pytest.Mo
 
 
 def test_deterministic_baseline_required(tmp_path: Path, audit: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+    """On Linux (or with --strict-platform on macOS/Windows), missing sha256 fails."""
     monkeypatch.setattr(audit, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(audit, "_LINUX", True)  # simulate Linux runner
     spec_path = _make_acceptance(tmp_path, deterministic=["uat-en"])
 
     report = audit.run_audit(spec_path, skip_pytest=True)
+    assert not report.ok
+    assert any("deterministic sha256" in f for f in report.failures)
+
+
+def test_deterministic_baseline_skipped_on_non_linux(
+    tmp_path: Path, audit: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """On non-Linux without --strict-platform, missing sha256 downgrades to pass."""
+    monkeypatch.setattr(audit, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(audit, "_LINUX", False)  # simulate macOS / Windows
+    spec_path = _make_acceptance(tmp_path, deterministic=["uat-en"])
+
+    report = audit.run_audit(spec_path, skip_pytest=True, strict_platform=False)
+    assert report.ok, report.failures
+    assert any("platform-conditional" in p for p in report.passes)
+
+
+def test_deterministic_baseline_strict_platform_overrides(
+    tmp_path: Path, audit: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """--strict-platform on a non-Linux dev box still fails missing sha256."""
+    monkeypatch.setattr(audit, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(audit, "_LINUX", False)
+    spec_path = _make_acceptance(tmp_path, deterministic=["uat-en"])
+
+    report = audit.run_audit(spec_path, skip_pytest=True, strict_platform=True)
     assert not report.ok
     assert any("deterministic sha256" in f for f in report.failures)
 

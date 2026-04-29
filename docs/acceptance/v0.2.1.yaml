@@ -101,7 +101,11 @@ kroki_pin:
 
 # Pytest invocation that the audit script must run successfully.
 # --strict-golden converts missing-baseline skips into hard failures.
+# Using `python -m pytest` (rather than bare `pytest`) so the command works
+# even when pytest is not on PATH but is importable in the active venv.
 pytest_strict_command:
+  - python
+  - -m
   - pytest
   - tests/golden/
   - --strict-golden

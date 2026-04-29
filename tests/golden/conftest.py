@@ -140,14 +140,27 @@ class RenderedPdfFactory:
 
 
 def discover_uat_fixtures() -> list[Path]:
-    """All fixtures/uat-*.md plus the comprehensive branch_ops fixture.
+    """All spec-required fixtures for the v1-parity golden gate.
 
-    Glob-discovered so the parity gate auto-picks up new fixtures.
+    Includes:
+      - every ``fixtures/uat-*.md`` (auto-globbed)
+      - the spec §7.2 mermaid-specific fixtures (named explicitly because they
+        do not follow the ``uat-*`` convention but are part of the parity gate)
+      - the spec §7.2.1 comprehensive UAT fixture
+
+    Acceptance contract: keep this list in sync with
+    ``docs/acceptance/v0.2.1.yaml::golden_baselines.fixtures``. The
+    spec-drift check (``scripts/check_acceptance.py``) catches divergence.
     """
     fixtures = sorted(FIXTURES_DIR.glob("uat-*.md"))
-    branch_ops = FIXTURES_DIR / "branch_ops_ai_robot_product_brief.md"
-    if branch_ops.exists():
-        fixtures.append(branch_ops)
+    extra_named = [
+        FIXTURES_DIR / "fenced-mermaid-smoke.md",
+        FIXTURES_DIR / "mermaid-noto-presets.md",
+        FIXTURES_DIR / "branch_ops_ai_robot_product_brief.md",
+    ]
+    for path in extra_named:
+        if path.exists():
+            fixtures.append(path)
     return fixtures
 
 
@@ -322,8 +335,14 @@ def _real_png_bytes() -> bytes:
 
 @pytest.fixture
 def mock_mermaid(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
-    """Make the mermaid renderer chain return a real 1x1 PNG so golden tests
-    don't depend on Kroki / mmdc / mermaid-py being installed.
+    """Stub the mermaid renderer chain so golden tests run without Kroki / mmdc /
+    mermaid-py installed.
+
+    Patches three renderers so the same fake 1x1 PNG is returned regardless of
+    which one the chain selects. Critically, the Kroki renderer is also stubbed
+    AND a placeholder ``KROKI_URL`` is set so tests that use ``deterministic=True``
+    on fixtures containing Mermaid blocks can still resolve a deterministic-safe
+    renderer (the chain rejects "pure" under deterministic mode).
     """
     png_bytes = _real_png_bytes()
 
@@ -332,13 +351,25 @@ def mock_mermaid(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
         def to_png(source: str) -> bytes:
             return png_bytes
 
+    def _fake_kroki_render(self, source, ctx):  # noqa: ANN001 — matches Renderer ABC
+        out = ctx.cache_root / "mermaid" / "fake.png"
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_bytes(png_bytes)
+        return out
+
     monkeypatch.setattr(
         "mdpdf.renderers.mermaid_pure._import_mermaid", lambda: _FakeMermaid
     )
     monkeypatch.setattr(
         "mdpdf.renderers.mermaid_puppeteer._find_mmdc", lambda: None
     )
-    monkeypatch.delenv("KROKI_URL", raising=False)
+    # Stub Kroki HTTP path — the renderer's render() writes the PNG itself.
+    monkeypatch.setattr(
+        "mdpdf.renderers.mermaid_kroki.KrokiMermaidRenderer.render",
+        _fake_kroki_render,
+    )
+    # Set a placeholder URL so the chain selects Kroki (deterministic-safe).
+    monkeypatch.setenv("KROKI_URL", "http://kroki.invalid.local")
     yield
 
 

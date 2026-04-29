@@ -88,7 +88,10 @@ def test_text_layer_snapshot(
                 source=fixture,
                 source_type="path",
                 output=out,
-                mermaid_renderer="pure",
+                # `auto` lets the mock_mermaid fixture pick a deterministic-safe
+                # renderer (Kroki stub); `pure` would be rejected here under
+                # deterministic=True.
+                mermaid_renderer="auto",
                 deterministic=True,
             )
         )

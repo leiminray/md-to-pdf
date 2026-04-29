@@ -60,8 +60,10 @@ jobs:
       # spec frontmatter matches yaml, extras matrix matches pyproject,
       # example brands count met. --skip-pytest because step 1 already
       # ran the strict pytest suite (and a re-run would just double the bill).
+      # --strict-platform makes Linux-only deterministic sha256 baselines a
+      # hard requirement on this runner.
       - name: Acceptance audit
-        run: python scripts/check_acceptance.py --skip-pytest
+        run: python scripts/check_acceptance.py --skip-pytest --strict-platform
 
       # Step 3: audit script self-tests. If the audit tool itself regresses,
       # everything above could pass while the gate is silently broken.

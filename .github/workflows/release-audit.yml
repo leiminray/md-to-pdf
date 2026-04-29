@@ -56,7 +56,7 @@ jobs:
       # This is intentionally redundant with the previous step — at release
       # time, defence-in-depth beats minutes saved.
       - name: Full acceptance audit
-        run: python scripts/check_acceptance.py
+        run: python scripts/check_acceptance.py --strict-platform
 
       # Self-tests for the audit tool itself.
       - name: Audit script unit tests
