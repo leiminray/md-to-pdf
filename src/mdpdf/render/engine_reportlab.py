@@ -238,7 +238,7 @@ class ReportLabEngine(RenderEngine):
         for child in children:
             match child:
                 case Text(content=c):
-                    parts.append(escape(c))
+                    parts.append(_escape_with_emoji(c))
                 case Strong(children=cs):
                     parts.append(f"<b>{ReportLabEngine._inline_to_html(cs)}</b>")
                 case Emphasis(children=cs):
@@ -249,6 +249,27 @@ class ReportLabEngine(RenderEngine):
                 case _:
                     parts.append(f"[{type(child).__name__}]")
         return "".join(parts)
+
+
+def _escape_with_emoji(text: str) -> str:
+    """Escape *text* for ReportLab Paragraph HTML, wrapping emoji characters
+    in <font face="NotoEmoji-Regular"> so they render with the bundled emoji
+    font instead of becoming tofu in the body's CJK font.
+    """
+    from mdpdf.fonts.manager import is_emoji_char
+    out: list[str] = []
+    buffer: list[str] = []
+    for ch in text:
+        if is_emoji_char(ch):
+            if buffer:
+                out.append(escape("".join(buffer)))
+                buffer.clear()
+            out.append(f'<font face="NotoEmoji-Regular">{escape(ch)}</font>')
+        else:
+            buffer.append(ch)
+    if buffer:
+        out.append(escape("".join(buffer)))
+    return "".join(out)
 
 
 def _default_styles() -> BrandStyles:

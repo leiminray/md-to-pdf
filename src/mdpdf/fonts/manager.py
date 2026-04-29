@@ -90,18 +90,34 @@ def japanese_kana_present(text: str) -> bool:
 
 
 def emoji_present(text: str) -> bool:
-    """True if *text* contains emoji or pictograph characters."""
+    """True if *text* contains true pictograph emojis.
+
+    Excludes Misc Symbols (U+2600-26FF) and Dingbats (U+2700-27BF) because
+    those blocks contain shapes (★☆○●) that NotoSansSC and most CJK fonts
+    cover natively. Only the supplementary-plane emoji blocks plus regional
+    indicators need the dedicated NotoEmoji font.
+    """
     for c in text:
         cp = ord(c)
         if (
             0x1F300 <= cp <= 0x1F9FF      # Misc Symbols & Pictographs
             or 0x1FA00 <= cp <= 0x1FAFF   # Symbols & Pictographs Ext-A
-            or 0x2600 <= cp <= 0x26FF     # Misc Symbols
-            or 0x2700 <= cp <= 0x27BF     # Dingbats
             or 0x1F1E6 <= cp <= 0x1F1FF   # Regional Indicator (flags)
         ):
             return True
     return False
+
+
+def is_emoji_char(c: str) -> bool:
+    """True if *c* is a single character that needs the dedicated emoji font."""
+    if len(c) != 1:
+        return False
+    cp = ord(c)
+    return (
+        0x1F300 <= cp <= 0x1F9FF
+        or 0x1FA00 <= cp <= 0x1FAFF
+        or 0x1F1E6 <= cp <= 0x1F1FF
+    )
 
 
 def select_cjk_font_for_text(text: str) -> str | None:
@@ -123,10 +139,9 @@ def select_cjk_font_for_text(text: str) -> str | None:
                 return n
         return None
 
-    if emoji_present(text):
-        em = _first("NotoEmoji-Regular")
-        if em:
-            return em
+    # Emoji is handled per-character via inline <font> tags in
+    # _inline_to_html, NOT here — picking NotoEmoji as the paragraph
+    # font would make the CJK/Latin text in the same line disappear.
     if korean_chars_present(text):
         kr = _first(
             "AppleSDGothicNeo", "NotoSansKR-Regular", "malgun",

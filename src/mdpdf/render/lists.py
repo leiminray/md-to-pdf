@@ -79,12 +79,30 @@ def ast_list_to_flowable(lst: ListBlock, body: ParagraphStyle) -> Flowable:
     )
 
 
+def _escape_with_emoji(text: str) -> str:
+    """Escape and wrap each emoji character in <font face="NotoEmoji-Regular">."""
+    from mdpdf.fonts.manager import is_emoji_char
+    out: list[str] = []
+    buf: list[str] = []
+    for ch in text:
+        if is_emoji_char(ch):
+            if buf:
+                out.append(escape("".join(buf)))
+                buf.clear()
+            out.append(f'<font face="NotoEmoji-Regular">{escape(ch)}</font>')
+        else:
+            buf.append(ch)
+    if buf:
+        out.append(escape("".join(buf)))
+    return "".join(out)
+
+
 def _inline_to_html(children: list[Inline]) -> str:
     parts: list[str] = []
     for child in children:
         match child:
             case Text(content=c):
-                parts.append(escape(c))
+                parts.append(_escape_with_emoji(c))
             case Code(content=c):
                 parts.append(f'<font face="Courier">{escape(c)}</font>')
             case Strong(children=cs):
