@@ -1,12 +1,1 @@
-pdf:Producer = 'md-to-pdf 2.0'
-xmp:CreateDate = '<DATE>'
-xmp:CreatorTool = 'md-to-pdf 2.0'
-dc:creator = ['None']
-dc:title = 'Fenced blocks + Mermaid smoke'
-mdpdf:BrandId = ''
-mdpdf:BrandVersion = ''
-mdpdf:InputHash = '5d01c88f49455c5850b9dabe956514d787eb075705f6723834388938a99288df'
-mdpdf:RenderHost = '<HOST>'
-mdpdf:RenderId = '<UUID>'
-mdpdf:RenderUser = 'ci@example.com'
-mdpdf:WatermarkLevel = 'L1+L2'
+

@@ -21,15 +21,36 @@ from mdpdf.errors import FontError
 
 
 def cjk_chars_present(text: str) -> bool:
+    """True if *text* contains any character that requires a CJK-capable font.
+
+    Covers the ranges Noto Sans SC supports beyond Latin-1, including
+    fullwidth punctuation (`：`, `，`, etc.), CJK symbols, ideographs, kana,
+    hangul, and CJK compatibility forms. Helvetica lacks glyphs for any of
+    these, so detecting them lets the caller switch to Noto Sans SC and
+    avoid tofu (rendered as small black squares).
+    """
     for ch in text:
         cp = ord(ch)
         if (
-            0x3040 <= cp <= 0x309F
-            or 0x30A0 <= cp <= 0x30FF
-            or 0x3400 <= cp <= 0x4DBF
-            or 0x4E00 <= cp <= 0x9FFF
-            or 0xAC00 <= cp <= 0xD7AF
-            or 0xF900 <= cp <= 0xFAFF
+            0x2E80 <= cp <= 0x2EFF       # CJK Radicals Supplement
+            or 0x2F00 <= cp <= 0x2FDF    # Kangxi Radicals
+            or 0x3000 <= cp <= 0x303F    # CJK Symbols & Punctuation (、。「」)
+            or 0x3040 <= cp <= 0x309F    # Hiragana
+            or 0x30A0 <= cp <= 0x30FF    # Katakana
+            or 0x3100 <= cp <= 0x312F    # Bopomofo
+            or 0x3130 <= cp <= 0x318F    # Hangul Compatibility Jamo
+            or 0x31C0 <= cp <= 0x31EF    # CJK Strokes
+            or 0x3200 <= cp <= 0x32FF    # CJK Letters & Months / Enclosed
+            or 0x3300 <= cp <= 0x33FF    # CJK Compatibility
+            or 0x3400 <= cp <= 0x4DBF    # CJK Unified Ext A
+            or 0x4E00 <= cp <= 0x9FFF    # CJK Unified Ideographs
+            or 0xA000 <= cp <= 0xA4CF    # Yi
+            or 0xAC00 <= cp <= 0xD7AF    # Hangul Syllables
+            or 0xF900 <= cp <= 0xFAFF    # CJK Compatibility Ideographs
+            or 0xFE30 <= cp <= 0xFE4F    # CJK Compatibility Forms
+            or 0xFF00 <= cp <= 0xFFEF    # Halfwidth & Fullwidth Forms (：，)
+            or 0x1F300 <= cp <= 0x1F9FF  # Emoji & Pictographs
+            or 0x20000 <= cp <= 0x2FFFF  # CJK Unified Ext B-F
         ):
             return True
     return False

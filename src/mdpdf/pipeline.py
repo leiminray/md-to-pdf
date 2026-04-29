@@ -10,7 +10,7 @@ import socket
 import time
 import uuid
 from collections.abc import Iterator
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Literal
 
@@ -67,7 +67,8 @@ class WatermarkOptions:
     """Watermark configuration. `level` is one of 'L0', 'L1', 'L2', or 'L1+L2'."""
 
     user: str | None = None
-    level: Literal["L0", "L1", "L2", "L1+L2"] = "L1+L2"
+    level: Literal["L0", "L1", "L2", "L1+L2"] = "L0"
+    force_disabled: bool = False  # True when user passed --no-watermark explicitly
     custom_text: str | None = None
 
 
@@ -265,9 +266,10 @@ class Pipeline:
             brand_pack = BrandPack(**payload)
 
         # Validate phase: brand SecurityConfig.watermark_min_level gates the
-        # request's watermark level (Task 16). Runs after override-resolution
-        # so a brand pack with overrides applied still enforces its policy.
-        self._check_watermark_policy(brand_pack, request.watermark.level, render_id)
+        # request's watermark level. If the user did NOT explicitly pass
+        # --no-watermark, a brand requiring watermarks silently auto-upgrades
+        # the level. If the user explicitly disabled, the brand policy errors.
+        request = self._resolve_watermark_level(brand_pack, request, render_id)
 
         # Build styles + prepare font manager
         styles = build_brand_styles(brand_pack) if brand_pack else None
@@ -430,28 +432,40 @@ class Pipeline:
         return result
 
     @staticmethod
-    def _check_watermark_policy(
-        brand: BrandPack | None, requested_level: str, render_id: str
-    ) -> None:
-        """Raise SecurityError if the requested watermark level is below the
-        brand's mandated minimum. Permissive defaults: a brand
-        with no SecurityConfig (or watermark_min_level == "L0") allows any
-        level including L0.
+    def _resolve_watermark_level(
+        brand: BrandPack | None, request: RenderRequest, render_id: str
+    ) -> RenderRequest:
+        """Reconcile the requested watermark level with the brand's required
+        minimum. Returns the (possibly upgraded) RenderRequest.
+
+        Behaviour:
+        - No brand, or brand min == "L0": leave request as-is.
+        - Requested >= brand min: leave as-is.
+        - Requested < brand min, force_disabled=False: silently upgrade to brand min.
+        - Requested < brand min, force_disabled=True: raise SecurityError.
         """
         if brand is None:
-            return
+            return request
         rank = {"L0": 0, "L1": 1, "L2": 1, "L1+L2": 2}
         min_level = brand.security.watermark_min_level
-        if rank.get(requested_level, 0) < rank.get(min_level, 0):
+        if rank.get(request.watermark.level, 0) >= rank.get(min_level, 0):
+            return request
+        if request.watermark.force_disabled:
             raise SecurityError(
                 code="WATERMARK_DENIED",
                 user_message=(
                     f"brand '{brand.id}' requires watermark level "
-                    f"'{min_level}' or stronger; --no-watermark / "
-                    f"watermark_level='{requested_level}' was requested"
+                    f"'{min_level}' or stronger; --no-watermark was passed"
                 ),
                 render_id=render_id,
             )
+        upgraded = WatermarkOptions(
+            user=request.watermark.user,
+            level=min_level,
+            custom_text=request.watermark.custom_text,
+            force_disabled=False,
+        )
+        return replace(request, watermark=upgraded)
 
     def _resolve_brand(self, request: RenderRequest) -> BrandPack | None:
         if request.brand_config:
@@ -470,9 +484,11 @@ class Pipeline:
         self, document: Document, request: RenderRequest, render_id: str,
     ) -> None:
         """Resolve relative image paths against the source dir, then eagerly
-        render Mermaid and Image assets so they populate the disk cache before
-        the engine pass.
+        render Mermaid and Image assets in parallel so they populate the disk
+        cache before the engine pass.
         """
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
         source_dir = (
             request.source.parent
             if request.source_type == "path" and isinstance(request.source, Path)
@@ -482,26 +498,55 @@ class Pipeline:
 
         ctx = RenderContext(
             cache_root=Path.home() / ".md-to-pdf" / "cache",
-            brand_pack=None,  # populated when we wire brand into RenderContext 
+            brand_pack=None,
             allow_remote_assets=request.allow_remote_assets,
             deterministic=request.deterministic,
         )
 
+        # Collect renderable assets and dispatch them in parallel. Mermaid
+        # via mmdc spawns Chromium per call (~5-10s each); a sequential
+        # for-loop on a 6-diagram document costs minutes. ThreadPoolExecutor
+        # boots Chromium concurrently.
+        def _make_mermaid_task(r: object, s: str) -> object:
+            return lambda: r.render(s, ctx)  # type: ignore[attr-defined]
+
+        def _make_image_task(r: ImageRenderer, i: ASTImage) -> object:
+            return lambda: r.render(i, ctx)
+
+        tasks: list[object] = []
         for node, image in self._iter_renderable_assets(document):
-            try:
-                if isinstance(node, MermaidBlock):
-                    renderer = select_mermaid_renderer(
-                        preference=request.mermaid_renderer,
-                        ctx=ctx,
-                        kroki_url_override=request.kroki_url,
-                    )
-                    renderer.render(node.source, ctx)
-                elif image is not None:
-                    ImageRenderer().render(image, ctx)
-            except RendererError as e:
-                if e.render_id is None:
-                    e.render_id = render_id
-                raise
+            if isinstance(node, MermaidBlock):
+                renderer = select_mermaid_renderer(
+                    preference=request.mermaid_renderer,
+                    ctx=ctx,
+                    kroki_url_override=request.kroki_url,
+                )
+                tasks.append(_make_mermaid_task(renderer, node.source))
+            elif image is not None:
+                tasks.append(_make_image_task(ImageRenderer(), image))
+
+        if not tasks:
+            return
+
+        # Cap concurrency: max 4 concurrent Mermaid renders.
+        max_workers = min(4, len(tasks))
+        first_error: RendererError | None = None
+        from concurrent.futures import Future
+
+        with ThreadPoolExecutor(max_workers=max_workers) as ex:
+            futures: list[Future[object]] = [
+                ex.submit(t) for t in tasks  # type: ignore[arg-type]
+            ]
+            for fut in as_completed(futures):
+                try:
+                    fut.result()
+                except RendererError as e:
+                    if e.render_id is None:
+                        e.render_id = render_id
+                    if first_error is None:
+                        first_error = e
+        if first_error is not None:
+            raise first_error
 
     @staticmethod
     def _resolve_image_paths(document: Document, source_dir: Path) -> None:

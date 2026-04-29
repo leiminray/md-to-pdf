@@ -126,10 +126,20 @@ def main() -> None:
     help="User identity embedded in L1 + L2 watermarks (default: $USER).",
 )
 @click.option(
+    "--watermark",
+    "watermark_on",
+    is_flag=True,
+    default=False,
+    help=(
+        "Enable L1 visible + L2 XMP watermarks "
+        "(default: off; brand security policy may force on)."
+    ),
+)
+@click.option(
     "--no-watermark",
     is_flag=True,
     default=False,
-    help="Skip the L1 visible diagonal watermark (sets watermark level to L0).",
+    help="Explicitly disable watermarks. Errors if brand requires watermarks.",
 )
 @click.option(
     "--watermark-text",
@@ -208,6 +218,7 @@ def render_cmd(
     brand_config: Path | None,
     overrides: tuple[str, ...],
     legacy_brand: bool,
+    watermark_on: bool,
     no_watermark: bool,
     watermark_text: str | None,
     mermaid_renderer: str,
@@ -233,8 +244,11 @@ def render_cmd(
     pipeline = Pipeline.from_env()
     from mdpdf.brand.overrides import parse_override
     parsed_overrides = [parse_override(o) for o in overrides]
+    if no_watermark and watermark_on:
+        click.echo("Error: --watermark and --no-watermark are mutually exclusive.", err=True)
+        raise SystemExit(2)
     watermark_level: Literal["L0", "L1", "L2", "L1+L2"] = (
-        "L0" if no_watermark else "L1+L2"
+        "L1+L2" if watermark_on else "L0"
     )
     req = RenderRequest(
         source=input_path,
@@ -250,6 +264,7 @@ def render_cmd(
             user=watermark_user or _resolve_default_user(),
             level=watermark_level,
             custom_text=watermark_text,
+            force_disabled=no_watermark,
         ),
         deterministic=deterministic,
         locale=locale,
