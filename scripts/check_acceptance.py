@@ -37,7 +37,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-import tomllib
+# tomllib is stdlib on Python 3.11+; fall back to the `tomli` package on 3.10.
+# `tomli` is the upstream of stdlib tomllib, so the API is identical.
+if sys.version_info >= (3, 11):
+    import tomllib
+else:  # pragma: no cover — Python 3.10 only
+    import tomli as tomllib  # type: ignore[no-redef,import-not-found]
+
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent

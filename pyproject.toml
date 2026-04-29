@@ -55,6 +55,9 @@ dev = [
   "pytest-asyncio>=0.23",
   "pytest-cov>=4.1",
   "ruff>=0.3",
+  # tomli is the upstream of stdlib tomllib (3.11+); needed only on Python 3.10
+  # for scripts/check_acceptance.py's pyproject.toml extras-matrix check.
+  "tomli>=2.0; python_version < '3.11'",
   "types-pygments",
   "types-pyyaml",
   "types-reportlab",
