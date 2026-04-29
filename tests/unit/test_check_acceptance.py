@@ -5,6 +5,7 @@ and we are back to the original failure mode (silent green CI). These tests
 exercise each individual check in isolation against a synthetic acceptance
 spec built in tmp_path.
 """
+
 from __future__ import annotations
 
 import importlib.util
@@ -53,7 +54,7 @@ def _make_pyproject(root: Path, extras: list[str]) -> Path:
     if extras:
         body += "\n[project.optional-dependencies]\n"
         for name in extras:
-            body += f'{name} = []\n'
+            body += f"{name} = []\n"
     return _write(root / "pyproject.toml", body)
 
 
@@ -92,7 +93,9 @@ def _make_acceptance(
 # ---------------------------------------------------------------------------
 
 
-def test_baseline_present_passes(tmp_path: Path, audit: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_baseline_present_passes(
+    tmp_path: Path, audit: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setattr(audit, "REPO_ROOT", tmp_path)
     _write(tmp_path / "tests/golden/baselines/ast/uat-en.txt", "non-empty\n")
     spec_path = _make_acceptance(
@@ -105,7 +108,9 @@ def test_baseline_present_passes(tmp_path: Path, audit: Any, monkeypatch: pytest
     assert any("baseline ok" in p for p in report.passes)
 
 
-def test_baseline_missing_fails(tmp_path: Path, audit: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_baseline_missing_fails(
+    tmp_path: Path, audit: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setattr(audit, "REPO_ROOT", tmp_path)
     spec_path = _make_acceptance(
         tmp_path,
@@ -131,7 +136,9 @@ def test_baseline_empty_fails(tmp_path: Path, audit: Any, monkeypatch: pytest.Mo
     assert any("empty baseline" in f for f in report.failures)
 
 
-def test_deterministic_baseline_required(tmp_path: Path, audit: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_deterministic_baseline_required(
+    tmp_path: Path, audit: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """On Linux (or with --strict-platform on macOS/Windows), missing sha256 fails."""
     monkeypatch.setattr(audit, "REPO_ROOT", tmp_path)
     monkeypatch.setattr(audit, "_LINUX", True)  # simulate Linux runner
@@ -168,7 +175,9 @@ def test_deterministic_baseline_strict_platform_overrides(
     assert any("deterministic sha256" in f for f in report.failures)
 
 
-def test_extras_matrix_missing_fails(tmp_path: Path, audit: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_extras_matrix_missing_fails(
+    tmp_path: Path, audit: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setattr(audit, "REPO_ROOT", tmp_path)
     _make_pyproject(tmp_path, extras=["dev"])
     spec_path = _make_acceptance(tmp_path, extras_required=["dev", "docs"])
@@ -178,7 +187,9 @@ def test_extras_matrix_missing_fails(tmp_path: Path, audit: Any, monkeypatch: py
     assert any("missing required extras" in f for f in report.failures)
 
 
-def test_extras_matrix_present_passes(tmp_path: Path, audit: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_extras_matrix_present_passes(
+    tmp_path: Path, audit: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setattr(audit, "REPO_ROOT", tmp_path)
     _make_pyproject(tmp_path, extras=["dev", "docs", "extra"])
     spec_path = _make_acceptance(tmp_path, extras_required=["dev", "docs"])
@@ -187,7 +198,9 @@ def test_extras_matrix_present_passes(tmp_path: Path, audit: Any, monkeypatch: p
     assert report.ok, report.failures
 
 
-def test_example_brands_below_min_fails(tmp_path: Path, audit: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_example_brands_below_min_fails(
+    tmp_path: Path, audit: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setattr(audit, "REPO_ROOT", tmp_path)
     (tmp_path / "examples/brands/only-one").mkdir(parents=True)
     spec_path = _make_acceptance(tmp_path, example_brands_min=2)
@@ -197,7 +210,9 @@ def test_example_brands_below_min_fails(tmp_path: Path, audit: Any, monkeypatch:
     assert any("example brands count" in f for f in report.failures)
 
 
-def test_example_brands_meets_min_passes(tmp_path: Path, audit: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_example_brands_meets_min_passes(
+    tmp_path: Path, audit: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setattr(audit, "REPO_ROOT", tmp_path)
     (tmp_path / "examples/brands/one").mkdir(parents=True)
     (tmp_path / "examples/brands/two").mkdir(parents=True)
@@ -219,7 +234,9 @@ def _make_spec_md(root: Path, name: str, acceptance: dict[str, Any]) -> Path:
     return _write(root / "docs" / name, body)
 
 
-def test_spec_drift_aligned_passes(tmp_path: Path, audit: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_spec_drift_aligned_passes(
+    tmp_path: Path, audit: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setattr(audit, "REPO_ROOT", tmp_path)
     _write(tmp_path / "tests/golden/baselines/ast/foo.txt", "x\n")
     spec_path = _make_acceptance(
@@ -228,7 +245,8 @@ def test_spec_drift_aligned_passes(tmp_path: Path, audit: Any, monkeypatch: pyte
         spec_files=["docs/spec-aligned.md"],
     )
     _make_spec_md(
-        tmp_path, "spec-aligned.md",
+        tmp_path,
+        "spec-aligned.md",
         {"fixtures": ["foo"], "deterministic": [], "extras": [], "example_brands_min": 0},
     )
 
@@ -237,7 +255,9 @@ def test_spec_drift_aligned_passes(tmp_path: Path, audit: Any, monkeypatch: pyte
     assert any("spec frontmatter aligned" in p for p in report.passes)
 
 
-def test_spec_drift_extra_fixture_in_spec_fails(tmp_path: Path, audit: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_spec_drift_extra_fixture_in_spec_fails(
+    tmp_path: Path, audit: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Spec promises a fixture that yaml does not enforce — most dangerous drift."""
     monkeypatch.setattr(audit, "REPO_ROOT", tmp_path)
     _write(tmp_path / "tests/golden/baselines/ast/foo.txt", "x\n")
@@ -247,10 +267,13 @@ def test_spec_drift_extra_fixture_in_spec_fails(tmp_path: Path, audit: Any, monk
         spec_files=["docs/spec.md"],
     )
     _make_spec_md(
-        tmp_path, "spec.md",
+        tmp_path,
+        "spec.md",
         {
             "fixtures": ["foo", "extra-promised-but-not-enforced"],
-            "deterministic": [], "extras": [], "example_brands_min": 0,
+            "deterministic": [],
+            "extras": [],
+            "example_brands_min": 0,
         },
     )
 
@@ -259,7 +282,9 @@ def test_spec_drift_extra_fixture_in_spec_fails(tmp_path: Path, audit: Any, monk
     assert any("promised in spec but missing from yaml" in f for f in report.failures)
 
 
-def test_spec_drift_missing_frontmatter_fails(tmp_path: Path, audit: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_spec_drift_missing_frontmatter_fails(
+    tmp_path: Path, audit: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setattr(audit, "REPO_ROOT", tmp_path)
     spec_path = _make_acceptance(tmp_path, spec_files=["docs/no-frontmatter.md"])
     _write(tmp_path / "docs/no-frontmatter.md", "# plain markdown, no frontmatter\n")
@@ -274,7 +299,9 @@ def test_spec_drift_missing_frontmatter_fails(tmp_path: Path, audit: Any, monkey
 # ---------------------------------------------------------------------------
 
 
-def test_main_returns_nonzero_on_failure(tmp_path: Path, audit: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_main_returns_nonzero_on_failure(
+    tmp_path: Path, audit: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setattr(audit, "REPO_ROOT", tmp_path)
     spec_path = _make_acceptance(
         tmp_path,
@@ -284,14 +311,18 @@ def test_main_returns_nonzero_on_failure(tmp_path: Path, audit: Any, monkeypatch
     assert rc == 1
 
 
-def test_main_returns_zero_when_clean(tmp_path: Path, audit: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_main_returns_zero_when_clean(
+    tmp_path: Path, audit: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setattr(audit, "REPO_ROOT", tmp_path)
     spec_path = _make_acceptance(tmp_path)  # no fixtures, no extras → trivially clean
     rc = audit.main(["--acceptance", str(spec_path), "--skip-pytest"])
     assert rc == 0
 
 
-def test_json_output_is_valid(tmp_path: Path, audit: Any, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+def test_json_output_is_valid(
+    tmp_path: Path, audit: Any, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
     monkeypatch.setattr(audit, "REPO_ROOT", tmp_path)
     spec_path = _make_acceptance(tmp_path)
     audit.main(["--acceptance", str(spec_path), "--skip-pytest", "--json"])

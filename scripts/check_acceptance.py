@@ -26,17 +26,18 @@ Exit codes:
     1  one or more acceptance criteria failed
     2  audit script itself encountered a configuration error
 """
+
 from __future__ import annotations
 
 import argparse
 import json
 import subprocess
 import sys
-import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+import tomllib
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -152,8 +153,7 @@ def check_deterministic_sha256(
                 report.add_fail(msg)
             else:
                 report.add_pass(
-                    f"sha256 baseline absent (platform-conditional, "
-                    f"non-Linux dev OK): {rel}"
+                    f"sha256 baseline absent (platform-conditional, non-Linux dev OK): {rel}"
                 )
             continue
         if baseline.stat().st_size == 0:
@@ -185,8 +185,7 @@ def check_extras_matrix(spec: dict[str, Any], report: AuditReport) -> None:
     missing = required - extras
     if missing:
         report.add_fail(
-            f"pyproject.toml missing required extras: {sorted(missing)} "
-            f"(found: {sorted(extras)})"
+            f"pyproject.toml missing required extras: {sorted(missing)} (found: {sorted(extras)})"
         )
     else:
         report.add_pass(f"extras matrix ok: {sorted(required)} present")
@@ -215,9 +214,7 @@ def check_example_brands(spec: dict[str, Any], report: AuditReport) -> None:
             f"(found: {sorted(b.name for b in brands)})"
         )
     else:
-        report.add_pass(
-            f"example brands ok: {len(brands)} present (min {min_count})"
-        )
+        report.add_pass(f"example brands ok: {len(brands)} present (min {min_count})")
 
 
 def _parse_spec_frontmatter(spec_path: Path) -> dict[str, Any] | None:
@@ -259,12 +256,8 @@ def check_spec_drift(spec: dict[str, Any], report: AuditReport) -> None:
     if not spec_files:
         return
 
-    yaml_fixtures = {
-        f["name"] for f in spec.get("golden_baselines", {}).get("fixtures", [])
-    }
-    yaml_deterministic = set(
-        spec.get("deterministic_sha256", {}).get("fixtures", [])
-    )
+    yaml_fixtures = {f["name"] for f in spec.get("golden_baselines", {}).get("fixtures", [])}
+    yaml_deterministic = set(spec.get("deterministic_sha256", {}).get("fixtures", []))
     yaml_extras_required = set(spec.get("extras_matrix", {}).get("required", []))
     yaml_brands_min = int(spec.get("example_brands", {}).get("min_count", 0))
 
@@ -280,8 +273,7 @@ def check_spec_drift(spec: dict[str, Any], report: AuditReport) -> None:
         acceptance_block = frontmatter.get("acceptance")
         if not isinstance(acceptance_block, dict):
             report.add_fail(
-                f"spec drift: {spec_relpath} frontmatter is missing the "
-                f"`acceptance:` block"
+                f"spec drift: {spec_relpath} frontmatter is missing the `acceptance:` block"
             )
             continue
 
@@ -295,13 +287,9 @@ def check_spec_drift(spec: dict[str, Any], report: AuditReport) -> None:
             only_in_spec = sorted(spec_fixtures - yaml_fixtures)
             only_in_yaml = sorted(yaml_fixtures - spec_fixtures)
             if only_in_spec:
-                problems.append(
-                    f"fixtures promised in spec but missing from yaml: {only_in_spec}"
-                )
+                problems.append(f"fixtures promised in spec but missing from yaml: {only_in_spec}")
             if only_in_yaml:
-                problems.append(
-                    f"fixtures in yaml but absent from spec: {only_in_yaml}"
-                )
+                problems.append(f"fixtures in yaml but absent from spec: {only_in_yaml}")
         if spec_deterministic != yaml_deterministic:
             problems.append(
                 f"deterministic mismatch: spec={sorted(spec_deterministic)} "
@@ -310,22 +298,18 @@ def check_spec_drift(spec: dict[str, Any], report: AuditReport) -> None:
         if not yaml_extras_required.issubset(spec_extras):
             missing_in_spec = sorted(yaml_extras_required - spec_extras)
             problems.append(
-                f"yaml requires extras not declared in spec frontmatter: "
-                f"{missing_in_spec}"
+                f"yaml requires extras not declared in spec frontmatter: {missing_in_spec}"
             )
         if spec_brands_min != yaml_brands_min:
             problems.append(
-                f"example_brands_min mismatch: spec={spec_brands_min} "
-                f"yaml={yaml_brands_min}"
+                f"example_brands_min mismatch: spec={spec_brands_min} yaml={yaml_brands_min}"
             )
 
         if problems:
             joined = "\n      ".join(problems)
             report.add_fail(f"spec drift in {spec_relpath}:\n      {joined}")
         else:
-            report.add_pass(
-                f"spec frontmatter aligned with yaml: {spec_relpath}"
-            )
+            report.add_pass(f"spec frontmatter aligned with yaml: {spec_relpath}")
 
 
 def check_pytest_strict(spec: dict[str, Any], report: AuditReport) -> None:
@@ -340,11 +324,12 @@ def check_pytest_strict(spec: dict[str, Any], report: AuditReport) -> None:
     if not cmd:
         return
     resolved = [sys.executable if tok == "python" else tok for tok in cmd]
-    proc = subprocess.run(
+    proc = subprocess.run(  # noqa: S603 — cmd source is the repo's own acceptance.yaml
         resolved,
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
+        check=False,
     )
     if proc.returncode == 0:
         report.add_pass(f"pytest strict run ok: {' '.join(cmd)}")
@@ -352,8 +337,7 @@ def check_pytest_strict(spec: dict[str, Any], report: AuditReport) -> None:
         tail = (proc.stdout + proc.stderr).strip().splitlines()
         excerpt = "\n      ".join(tail[-25:]) if tail else "(no output)"
         report.add_fail(
-            f"pytest strict run failed (exit {proc.returncode}): {' '.join(cmd)}\n"
-            f"      {excerpt}"
+            f"pytest strict run failed (exit {proc.returncode}): {' '.join(cmd)}\n      {excerpt}"
         )
 
 
