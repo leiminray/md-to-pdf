@@ -108,6 +108,7 @@ class TestDeterministicRender:
                 str(DETERMINISTIC),
                 "-o", str(out),
                 "--deterministic",
+                "--watermark",
                 "--watermark-user", user,
                 env_extra={"SOURCE_DATE_EPOCH": _SOURCE_DATE_EPOCH},
             )
@@ -133,6 +134,7 @@ class TestFullFlow:
         proc = _run_md_to_pdf(
             str(HELLO),
             "-o", str(out),
+            "--watermark",
             "--watermark-user", "alice@test.example",
         )
         assert proc.returncode == 0, proc.stderr

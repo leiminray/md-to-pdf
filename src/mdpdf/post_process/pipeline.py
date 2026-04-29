@@ -48,12 +48,18 @@ class PostProcessPipeline:
         """Apply post-process passes to *pdf_path* (in-place); returns elapsed ms."""
         t_start = time.perf_counter()
 
+        from pathlib import Path as _Path
+
         brand_name: str = ""
         confidential_text: str = "Confidential"
         issuer_name: str = ""
         issuer_lines: list[str] = []
+        issuer_qr: str | None = None
+        icon_path: _Path | None = None
+        logo_path: _Path | None = None
         brand_id: str = ""
         brand_version: str = ""
+        pack_root: _Path | None = None
 
         if opts.brand_pack is not None:
             bp = opts.brand_pack
@@ -62,6 +68,22 @@ class PostProcessPipeline:
             brand_name = (
                 getattr(getattr(bp, "identity", None), "name", "") or brand_id or ""
             )
+            pack_root_raw = getattr(bp, "pack_root", None)
+            if pack_root_raw is not None:
+                pack_root = _Path(str(pack_root_raw))
+            theme = getattr(bp, "theme", None)
+            assets = getattr(theme, "assets", None) if theme is not None else None
+            if assets is not None and pack_root is not None:
+                icon_rel = getattr(assets, "icon", None)
+                if icon_rel:
+                    cand = (pack_root / str(icon_rel)).resolve()
+                    if cand.exists():
+                        icon_path = cand
+                logo_rel = getattr(assets, "logo", None)
+                if logo_rel:
+                    cand = (pack_root / str(logo_rel)).resolve()
+                    if cand.exists():
+                        logo_path = cand
             compliance = getattr(bp, "compliance", None)
             if compliance is not None:
                 confidential_text = (
@@ -72,15 +94,25 @@ class PostProcessPipeline:
                 if issuer is not None:
                     issuer_name = getattr(issuer, "name", "") or ""
                     issuer_lines = list(getattr(issuer, "lines", []) or [])
+                    qr = getattr(issuer, "qr", None)
+                    if qr is not None:
+                        issuer_qr = getattr(qr, "value", None)
 
         if issuer_name:
-            apply_issuer_card(pdf_path, issuer_name=issuer_name, issuer_lines=issuer_lines)
+            apply_issuer_card(
+                pdf_path,
+                issuer_name=issuer_name,
+                issuer_lines=issuer_lines,
+                icon_path=icon_path,
+                qr_payload=issuer_qr,
+            )
 
         apply_footer(
             pdf_path,
             brand_name=brand_name,
             confidential_text=confidential_text,
             locale=opts.locale,
+            logo_path=logo_path,
         )
 
         if opts.watermark.level != "L0":

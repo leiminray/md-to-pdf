@@ -49,9 +49,11 @@ jobs:
 
       # libcairo (cairosvg's native dep) per-OS. Tests skip on systems
       # without it, so this is best-effort to maximise coverage.
-      - name: Install libcairo (Ubuntu)
+      - name: Install libcairo + Noto CJK fonts (Ubuntu)
         if: runner.os == 'Linux'
-        run: sudo apt-get update -y && sudo apt-get install -y libcairo2
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y libcairo2 fonts-noto-cjk
 
       - name: Install libcairo (macOS)
         if: runner.os == 'macOS'

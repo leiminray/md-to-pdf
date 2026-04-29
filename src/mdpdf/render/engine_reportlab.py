@@ -57,10 +57,31 @@ class ReportLabEngine(RenderEngine):
     name = "reportlab"
 
     def __init__(self, brand_styles: BrandStyles | None = None) -> None:
-        # Allow None for back-compat with minimal tests, in which
-        # case we synthesise a minimal default. Pipeline always passes
-        # brand_styles when available.
         self._brand_styles = brand_styles or _default_styles()
+        self._style_cache: dict[tuple[str, str], ParagraphStyle] = {}
+
+    def _style_for_text(
+        self, text: str, base: ParagraphStyle
+    ) -> ParagraphStyle:
+        """Return a style with `fontName` swapped to a script-appropriate
+        CJK font when *text* contains characters the base font may lack
+        (e.g., Korean Hangul or Japanese kana).
+        """
+        from mdpdf.fonts.manager import select_cjk_font_for_text
+        chosen = select_cjk_font_for_text(text)
+        if chosen is None or chosen == base.fontName:
+            return base
+        cache_key = (base.name, chosen)
+        if cache_key in self._style_cache:
+            return self._style_cache[cache_key]
+        # Clone the base style and swap fontName
+        cloned = ParagraphStyle(
+            name=f"{base.name}_{chosen}",
+            parent=base,
+            fontName=chosen,
+        )
+        self._style_cache[cache_key] = cloned
+        return cloned
 
     def render(self, document: Document, output: Path) -> int:
         flowables = self._convert(document)
@@ -107,15 +128,17 @@ class ReportLabEngine(RenderEngine):
 
     def _convert_block(self, node: Block, body: ParagraphStyle) -> list[Flowable]:
         if isinstance(node, Paragraph):
-            # CommonMark wraps a standalone `![alt](src)` in a Paragraph; promote
-            # such image-only paragraphs to block-level Image flowables.
             if len(node.children) == 1 and isinstance(node.children[0], ASTImage):
                 return self._convert_block(node.children[0], body)
-            return [RLParagraph(self._inline_to_html(node.children), body)]
+            html = self._inline_to_html(node.children)
+            style = self._style_for_text(_inline_to_plain(node.children), body)
+            return [RLParagraph(html, style)]
         if isinstance(node, Heading):
             level = max(1, min(node.level, 6))
-            style = self._brand_styles.paragraph_styles[f"H{level}"]
-            return [RLParagraph(self._inline_to_html(node.children), style)]
+            base_style = self._brand_styles.paragraph_styles[f"H{level}"]
+            html = self._inline_to_html(node.children)
+            style = self._style_for_text(_inline_to_plain(node.children), base_style)
+            return [RLParagraph(html, style)]
         if isinstance(node, CodeFence):
             ctx = RenderContext(
                 cache_root=Path.home() / ".md-to-pdf" / "cache",
@@ -126,10 +149,17 @@ class ReportLabEngine(RenderEngine):
             result = CodeRenderer().render(node, ctx)
             code_style = self._brand_styles.paragraph_styles["Code"]
             accent = code_style.textColor
+            body_font = code_style.fontName
+            # Auto-fallback to CJK font when code contains CJK characters
+            # (most monospace fonts like Courier lack CJK glyphs).
+            from mdpdf.fonts.manager import select_cjk_font_for_text
+            cjk_fallback = select_cjk_font_for_text(node.content)
+            if cjk_fallback is not None:
+                body_font = cjk_fallback
             return [FencedCodeCard(
                 result=result,
                 accent_color=str(accent.hexval()) if hasattr(accent, "hexval") else "#0066CC",
-                body_font=code_style.fontName,
+                body_font=body_font,
                 body_font_size=int(code_style.fontSize),
                 line_numbers=False,
             )]
@@ -208,7 +238,7 @@ class ReportLabEngine(RenderEngine):
         for child in children:
             match child:
                 case Text(content=c):
-                    parts.append(escape(c))
+                    parts.append(_escape_with_emoji(c))
                 case Strong(children=cs):
                     parts.append(f"<b>{ReportLabEngine._inline_to_html(cs)}</b>")
                 case Emphasis(children=cs):
@@ -219,6 +249,27 @@ class ReportLabEngine(RenderEngine):
                 case _:
                     parts.append(f"[{type(child).__name__}]")
         return "".join(parts)
+
+
+def _escape_with_emoji(text: str) -> str:
+    """Escape *text* for ReportLab Paragraph HTML, wrapping emoji characters
+    in <font face="NotoEmoji-Regular"> so they render with the bundled emoji
+    font instead of becoming tofu in the body's CJK font.
+    """
+    from mdpdf.fonts.manager import is_emoji_char
+    out: list[str] = []
+    buffer: list[str] = []
+    for ch in text:
+        if is_emoji_char(ch):
+            if buffer:
+                out.append(escape("".join(buffer)))
+                buffer.clear()
+            out.append(f'<font face="NotoEmoji-Regular">{escape(ch)}</font>')
+        else:
+            buffer.append(ch)
+    if buffer:
+        out.append(escape("".join(buffer)))
+    return "".join(out)
 
 
 def _default_styles() -> BrandStyles:

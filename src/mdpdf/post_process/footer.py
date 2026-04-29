@@ -15,10 +15,9 @@ from pathlib import Path
 import pypdf
 from reportlab.lib import colors
 from reportlab.lib.units import mm
-from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfgen import canvas as rl_canvas
 
-from mdpdf.fonts.manager import FontManager, cjk_chars_present
+from mdpdf.fonts.manager import FontManager, cjk_chars_present, select_cjk_font_for_text
 from mdpdf.i18n.strings import lookup
 
 _BUNDLED_FONTS_DIR = Path(__file__).resolve().parents[3] / "fonts"
@@ -41,13 +40,35 @@ def _build_overlay(
     font_name: str,
     font_size: int,
     color: colors.Color,
+    logo_path: Path | None = None,
 ) -> bytes:
+    from reportlab.lib.utils import ImageReader
+
     buf = io.BytesIO()
     c = rl_canvas.Canvas(buf, pagesize=(page_width, page_height))
     c.setFont(font_name, font_size)
     c.setFillColor(color)
     y = bottom_margin_pt
-    c.drawString(left_margin_pt, y, left_text)
+
+    text_x = left_margin_pt
+    if logo_path is not None and logo_path.exists():
+        try:
+            logo_h = font_size * 1.6
+            c.drawImage(
+                ImageReader(str(logo_path)),
+                left_margin_pt,
+                y - logo_h * 0.25,
+                height=logo_h,
+                width=logo_h * 3,
+                mask="auto",
+                preserveAspectRatio=True,
+                anchor="sw",
+            )
+            text_x = left_margin_pt + logo_h * 3 + 4
+        except Exception:  # noqa: S110, BLE001 — best-effort logo overlay; missing-image is non-fatal
+            pass
+
+    c.drawString(text_x, y, left_text)
     right_width = c.stringWidth(right_text, font_name, font_size)
     c.drawString(page_width - left_margin_pt - right_width, y, right_text)
     c.save()
@@ -61,6 +82,7 @@ def apply_footer(
     brand_name: str,
     confidential_text: str,
     locale: str = "en",
+    logo_path: Path | None = None,
     left_margin_mm: float = 18,
     bottom_margin_mm: float = 8,
     font_name: str = "Helvetica",
@@ -84,10 +106,9 @@ def apply_footer(
         fm = FontManager(bundled_dir=_BUNDLED_FONTS_DIR)
         with contextlib.suppress(Exception):
             fm.register_for_text(sample_text)
-        for cand in ("NotoSansSC-Regular", "NotoSansCJK-Regular", "PingFang"):
-            if cand in pdfmetrics.getRegisteredFontNames():
-                font_name = cand
-                break
+        chosen = select_cjk_font_for_text(sample_text)
+        if chosen is not None:
+            font_name = chosen
 
     reader = pypdf.PdfReader(str(pdf_path))
     # clone_from preserves outlines, named destinations, and metadata that
@@ -113,6 +134,7 @@ def apply_footer(
             font_name=font_name,
             font_size=font_size,
             color=fill,
+            logo_path=logo_path,
         )
         overlay_reader = pypdf.PdfReader(io.BytesIO(overlay_bytes))
         page.merge_page(overlay_reader.pages[0])

@@ -1,0 +1,61 @@
+name: Regenerate Golden Baselines
+
+# Manually-triggered workflow to regenerate Linux-canonical golden baselines
+# (AST, XMP, text-layer, layout fingerprint, deterministic SHA256). Use this
+# after intentional renderer changes that altered output bytes/layout.
+#
+# How it works:
+#   1. Runs pytest tests/golden/ --update-golden on Ubuntu with all required
+#      fonts (libcairo + fonts-noto-cjk).
+#   2. Commits regenerated baselines to a new branch.
+#   3. Opens a draft PR for human review.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install libcairo + Noto CJK fonts
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y libcairo2 fonts-noto-cjk
+
+      - name: Install package
+        run: pip install -e ".[dev]"
+
+      - name: Regenerate baselines
+        env:
+          PYTHONUTF8: "1"
+        run: python -m pytest tests/golden/ --update-golden -v
+
+      - name: Commit + push baselines
+        run: |
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Actions"
+          BRANCH="auto/regenerate-baselines-$(date +%Y%m%d-%H%M%S)"
+          git checkout -b "$BRANCH"
+          git add tests/golden/baselines/
+          if git diff --cached --quiet; then
+            echo "No baseline changes."
+            exit 0
+          fi
+          git commit -m "chore(golden): regenerate Linux-canonical baselines"
+          git push origin "$BRANCH"
+          gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "chore(golden): regenerate Linux baselines" \
+            --body "Automated baseline regeneration triggered by workflow_dispatch. Review the diff carefully — every changed byte represents an intentional rendering change."
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

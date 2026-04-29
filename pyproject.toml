@@ -36,6 +36,7 @@ dependencies = [
   "pygments>=2.17",
   "pypdf>=4.0",
   "pyyaml>=6.0",
+  "qrcode>=7.4",
   "reportlab>=4.0",
   "structlog>=24.1",
 ]

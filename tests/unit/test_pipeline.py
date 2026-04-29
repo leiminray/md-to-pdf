@@ -47,8 +47,9 @@ def test_render_request_template_defaults_to_generic():
 def test_watermark_options_defaults():
     wm = WatermarkOptions()
     assert wm.user is None
-    assert wm.level == "L1+L2"
+    assert wm.level == "L0"  # off by default; brand security policy can force on
     assert wm.custom_text is None
+    assert wm.force_disabled is False
 
 
 def test_render_metrics_construction():
@@ -335,7 +336,7 @@ class TestPipelinePostProcess:
     """Task 11 — Pipeline runs PostProcessPipeline after engine + populates metric."""
 
     def test_brand_security_gates_no_watermark(self, tmp_path: Path) -> None:
-        """Task 16 — a brand requiring watermark_min_level=L1+L2 rejects --no-watermark."""
+        """A brand requiring watermark_min_level=L1+L2 rejects an explicit --no-watermark."""
         from mdpdf.errors import SecurityError
         from tests.unit.brand.test_registry import _make_brand
 
@@ -352,10 +353,29 @@ class TestPipelinePostProcess:
                     source_type="path",
                     output=tmp_path / "out.pdf",
                     brand_pack_dir=pack,
-                    watermark=WatermarkOptions(level="L0"),
+                    watermark=WatermarkOptions(level="L0", force_disabled=True),
                 )
             )
         assert exc_info.value.code == "WATERMARK_DENIED"
+
+    def test_brand_security_auto_upgrades_default_off(self, tmp_path: Path) -> None:
+        """Default watermark=L0 + brand requiring L1+L2 silently upgrades (no error)."""
+        from tests.unit.brand.test_registry import _make_brand
+
+        pack = _make_brand(tmp_path, brand_id="strict2")
+        src = tmp_path / "in.md"
+        src.write_text("# x\n")
+        pipeline = Pipeline.from_env()
+        # No explicit watermark -> level=L0, force_disabled=False -> brand bumps it.
+        result = pipeline.render(
+            RenderRequest(
+                source=src,
+                source_type="path",
+                output=tmp_path / "out.pdf",
+                brand_pack_dir=pack,
+            )
+        )
+        assert result.output_path.exists()
 
     def test_pipeline_post_process_ms_populated(self, tmp_path: Path) -> None:
         src = tmp_path / "in.md"

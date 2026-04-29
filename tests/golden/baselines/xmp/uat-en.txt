@@ -1,12 +1,1 @@
-pdf:Producer = 'md-to-pdf 2.0'
-xmp:CreateDate = '<DATE>'
-xmp:CreatorTool = 'md-to-pdf 2.0'
-dc:creator = ['None']
-dc:title = 'UAT Fixture — English'
-mdpdf:BrandId = ''
-mdpdf:BrandVersion = ''
-mdpdf:InputHash = '0c00e8c3bfe13634c30b2c33ad9f901e8414e6e10202906d26b7f7ccf659928a'
-mdpdf:RenderHost = '<HOST>'
-mdpdf:RenderId = '<UUID>'
-mdpdf:RenderUser = 'ci@example.com'
-mdpdf:WatermarkLevel = 'L1+L2'
+

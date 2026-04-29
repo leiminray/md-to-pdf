@@ -44,8 +44,9 @@ def test_apply_l2_xmp_all_keys_present(tmp_path: Path) -> None:
         # dc:creator is an XMP Bag/Seq per spec; pikepdf returns a list-like.
         assert list(meta["dc:creator"]) == ["ACME Corp"]
         assert meta["dc:title"] == "Test Document"
-        assert meta["pdf:Producer"] == "md-to-pdf 2.0"
-        assert meta["xmp:CreatorTool"] == "md-to-pdf 2.0"
+        from mdpdf import __version__ as _mdpdf_version
+        assert meta["pdf:Producer"] == f"md-to-pdf {_mdpdf_version}"
+        assert meta["xmp:CreatorTool"] == f"md-to-pdf {_mdpdf_version}"
         assert meta["xmp:CreateDate"] == "2026-04-27T10:00:00+00:00"
         assert meta["mdpdf:RenderId"] == "12345678-1234-1234-1234-123456789abc"
         assert meta["mdpdf:RenderUser"] == "alice@example.com"

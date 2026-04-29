@@ -12,9 +12,11 @@ from pathlib import Path
 
 import pikepdf
 
+from mdpdf import __version__
+
 _MDPDF_NS = "https://md-to-pdf.dev/xmp/1.0/"
-_PRODUCER = "md-to-pdf 2.0"
-_CREATOR_TOOL = "md-to-pdf 2.0"
+_PRODUCER = f"md-to-pdf {__version__}"
+_CREATOR_TOOL = f"md-to-pdf {__version__}"
 
 
 def apply_l2_xmp(

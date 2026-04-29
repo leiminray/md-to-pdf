@@ -22,7 +22,21 @@ from pathlib import Path
 import pypdf
 from reportlab.pdfgen import canvas as rl_canvas
 
+from mdpdf.fonts.manager import FontManager, cjk_chars_present, select_cjk_font_for_text
 from mdpdf.security.contrast import enforce_min_contrast
+
+_BUNDLED_FONTS_DIR = Path(__file__).resolve().parents[3] / "fonts"
+
+
+def _select_watermark_font(text: str) -> str:
+    """Return a font name that has glyphs for *text* (script-aware fallback)."""
+    if not cjk_chars_present(text):
+        return "Helvetica"
+    fm = FontManager(bundled_dir=_BUNDLED_FONTS_DIR)
+    import contextlib
+    with contextlib.suppress(Exception):
+        fm.register_for_text(text)
+    return select_cjk_font_for_text(text) or "Helvetica"
 
 # Spec §5.2 defaults
 _DEFAULT_COLOR = "#EBEFF0"
@@ -67,7 +81,8 @@ def build_watermark_page(
 
     r, g, b = _hex_to_rgb_floats(color)
     c.setFillColorRGB(r, g, b)
-    c.setFont("Helvetica", font_size)
+    font_name = _select_watermark_font(text)
+    c.setFont(font_name, font_size)
 
     diagonal = math.hypot(width_pt, height_pt)
     approx_char_width = font_size * 0.55
@@ -133,7 +148,9 @@ def apply_l1_watermark(
         )
 
         wm_reader = pypdf.PdfReader(io.BytesIO(wm_bytes))
-        page.merge_page(wm_reader.pages[0])
+        # over=False places the watermark *under* the existing page content
+        # so body text remains readable on top of the diagonal stamp.
+        page.merge_page(wm_reader.pages[0], over=False)
 
     dir_path = pdf_path.parent
     fd, tmp_path_str = tempfile.mkstemp(

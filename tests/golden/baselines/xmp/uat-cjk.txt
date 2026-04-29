@@ -1,12 +1,1 @@
-pdf:Producer = 'md-to-pdf 2.0'
-xmp:CreateDate = '<DATE>'
-xmp:CreatorTool = 'md-to-pdf 2.0'
-dc:creator = ['None']
-dc:title = 'UAT Fixture — CJK strict'
-mdpdf:BrandId = ''
-mdpdf:BrandVersion = ''
-mdpdf:InputHash = 'df01e5b7f8a19e244d11575e5588723d05d4b763584fd2e8c11ff890bfb5322e'
-mdpdf:RenderHost = '<HOST>'
-mdpdf:RenderId = '<UUID>'
-mdpdf:RenderUser = 'ci@example.com'
-mdpdf:WatermarkLevel = 'L1+L2'
+
